@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidade — TipLabs</title>
+  <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bodoni+Moda:opsz,wght@6..96,600;6..96,700&display=swap">
+  <style>
+    :root {
+      --bg-root: #0a0c10;
+      --bg-surface: #11131a;
+      --bg-card: #1a1e28;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-medium: rgba(255, 255, 255, 0.10);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --marca-laranja: #fd741e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg-root);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.65;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 56px 24px 100px;
+    }
+    a.voltar {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      margin-bottom: 28px;
+    }
+    a.voltar:hover { color: var(--text-primary); }
+    .marca {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .marca img { width: 32px; height: 32px; }
+    .marca span { font-family: 'Bodoni Moda', Georgia, serif; font-size: 20px; font-weight: 700; }
+    h1 {
+      font-family: 'Bodoni Moda', Georgia, serif;
+      font-size: 32px;
+      margin: 24px 0 6px;
+    }
+    .atualizado { color: var(--text-muted); font-size: 12.5px; margin-bottom: 40px; }
+    h2 {
+      font-size: 15px;
+      margin: 36px 0 10px;
+      color: var(--text-primary);
+    }
+    p, li { color: var(--text-secondary); font-size: 14px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    .aviso {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 2px solid var(--marca-laranja);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 24px 0;
+    }
+    code {
+      background: var(--bg-card);
+      border: 1px solid var(--border-medium);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 12.5px;
+    }
+    footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="voltar" href="/">← Voltar ao TipLabs</a>
+    <div class="marca">
+      <img src="/img/logo-tiplabs.svg" alt="">
+      <span>TipLabs</span>
+    </div>
+    <h1>Política de Privacidade</h1>
+    <p class="atualizado">Última atualização: 24 de setembro de 2026</p>
+
+    <p>O TipLabs é um painel de uso pessoal que controla a "fábrica de vídeos": um sistema que roda no computador do próprio usuário e gera vídeos narrados automaticamente. Este documento explica que dado é acessado, pra que serve e onde ele fica guardado.</p>
+
+    <h2>O que é acessado na sua conta do Google/YouTube</h2>
+    <p>Quando você conecta uma conta do YouTube ao TipLabs, o sistema pede permissão pra:</p>
+    <ul>
+      <li>Ler informações básicas do seu canal (nome e foto), só pra mostrar qual conta está conectada.</li>
+      <li>Enviar vídeos ao seu canal e alterar a visibilidade deles (de Privado pra Público), quando você usa a publicação ou o agendamento.</li>
+    </ul>
+    <p>O TipLabs nunca lê, apaga ou publica nada na sua conta por conta própria — toda publicação parte de uma ação explícita sua, feita na tela "Publicar no YouTube".</p>
+
+    <h2>Onde os dados ficam guardados</h2>
+    <p>Este é um sistema de um usuário só, sem servidor compartilhado nem banco de dados de terceiros. Tudo fica gravado localmente, no computador que roda a fábrica:</p>
+    <ul>
+      <li>O token de acesso à sua conta do Google fica num arquivo local (<code>youtube_conta.json</code>), nunca é enviado a nenhum servidor além dos próprios servidores do Google.</li>
+      <li>Os vídeos, roteiros e metadados de cada projeto ficam em pastas locais, na máquina do usuário.</li>
+    </ul>
+    <p>Nenhum dado é vendido, compartilhado com terceiros ou usado para publicidade.</p>
+
+    <h2>Outros dados públicos usados</h2>
+    <p>A ferramenta "Procurar Nichos" consulta a API pública do YouTube (visualizações, inscritos, quantidade de vídeos de canais) só pra ajudar a encontrar temas de vídeo — não envolve login nem dado pessoal de ninguém, só estatísticas públicas dos próprios vídeos do YouTube.</p>
+
+    <h2>Como revogar o acesso</h2>
+    <p>Você pode desconectar a conta a qualquer momento pelo próprio painel (botão "Desconectar" na tela Publicar no YouTube) ou diretamente em <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</p>
+
+    <div class="aviso">
+      Este é um projeto pessoal, não uma empresa nem um produto comercial com usuários cadastrados. Se você recebeu acesso a esta ferramenta de outra pessoa, essas mesmas regras valem pra sua conta também.
+    </div>
+
+    <h2>Contato</h2>
+    <p>Dúvidas sobre privacidade: <a href="mailto:jonathansantost99@gmail.com">jonathansantost99@gmail.com</a></p>
+
+    <footer>
+      <a href="/termos">Termos de Uso</a> · <a href="/">TipLabs</a>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,635 @@
+/* ==========================================================================
+   TipLabs - Painel inicial (dashboard)
+   Lista de vídeos, números gerais e configuração das chaves de API.
+   ========================================================================== */
+
+#view-dashboard {
+  display: none;
+  flex: 1;
+  height: calc(100vh - 48px);
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(253, 116, 30, 0.06) 0%, transparent 45%),
+    radial-gradient(circle at 85% 10%, rgba(96, 165, 250, 0.05) 0%, transparent 50%),
+    var(--bg-root);
+}
+
+.dash-wrapper {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 40px 28px 72px;
+  animation: fadeInView 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* -------------------------------------------------------------
+   Abertura
+   ------------------------------------------------------------- */
+.dash-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.dash-titulo {
+  font-family: 'Bodoni Moda', Georgia, serif;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.dash-subtitulo {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 52ch;
+}
+
+/* O laranja da marca fica reservado para a ação principal de cada tela */
+.btn-cta {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--marca-laranja);
+  border-color: var(--marca-laranja);
+  color: #1a0d04;
+}
+
+.btn-cta:hover {
+  background: #ff8638;
+  border-color: #ff8638;
+  color: #1a0d04;
+}
+
+.dash-hero-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-dash-novo {
+  flex-shrink: 0;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(253, 116, 30, 0.18);
+}
+
+.dash-novo-mais {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* -------------------------------------------------------------
+   Números gerais
+   ------------------------------------------------------------- */
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.dash-stat {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dash-stat-valor {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-stat-rotulo {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dash-painel {
+  display: none;
+}
+
+.dash-painel.active {
+  display: block;
+}
+
+/* -------------------------------------------------------------
+   Filtros
+   ------------------------------------------------------------- */
+.dash-filtros {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.dash-filtro {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 100px;
+  padding: 5px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-filtro:hover {
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+.dash-filtro.active {
+  background: var(--marca-laranja-suave);
+  border-color: rgba(253, 116, 30, 0.35);
+  color: #ffb27a;
+}
+
+.dash-atualizar {
+  margin-left: auto;
+}
+
+/* -------------------------------------------------------------
+   Grade de vídeos
+   ------------------------------------------------------------- */
+.dash-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: 16px;
+}
+
+.dash-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.dash-card:hover {
+  border-color: var(--border-medium);
+  transform: translateY(-2px);
+}
+
+.dash-card-capa {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #0b0d12;
+  overflow: hidden;
+}
+
+.dash-card-capa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dash-card-capa-vazia {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.18;
+}
+
+.dash-card-capa-vazia img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/* O selo fica sobre a miniatura, que pode ser clara ou escura. A base escura
+   sólida garante a leitura nos dois casos — translúcido some no céu claro. */
+.dash-card-selo {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  background: rgba(8, 10, 14, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.dash-card-selo.pronto {
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+}
+
+.dash-card-selo.producao {
+  color: #ffb27a;
+  border: 1px solid rgba(253, 116, 30, 0.45);
+}
+
+.dash-card-selo.parado {
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.dash-card-selo.editavel {
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+/* Enquanto as cenas ainda estão sendo preenchidas, o tempo decorrido ocupa o
+   centro da miniatura vazia, no lugar de uma imagem que ainda não existe. */
+.dash-card-tempo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #ffffff;
+  /* borda preta em volta das letras: o texto fica legível sobre qualquer miniatura, clara ou escura */
+  -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.9);
+  paint-order: stroke fill;
+  text-shadow:
+    -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000,
+    0 0 6px rgba(0, 0, 0, 0.85);
+  background: rgba(8, 10, 14, 0.45);
+  pointer-events: none;
+}
+
+.dash-card-corpo {
+  padding: 13px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+}
+
+.dash-card-nome {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.dash-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.dash-card-meta span {
+  background: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-card-acoes {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.dash-card-acoes .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.dash-card-acoes .btn-icone {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+}
+
+/* -------------------------------------------------------------
+   Quando ainda não há nenhum vídeo
+   ------------------------------------------------------------- */
+.dash-vazio {
+  text-align: center;
+  padding: 72px 20px;
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.dash-vazio-marca {
+  opacity: 0.5;
+  margin-bottom: 18px;
+}
+
+.dash-vazio-titulo {
+  font-family: 'Bodoni Moda', Georgia, serif;
+  font-size: 21px;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.dash-vazio-texto {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 44ch;
+  margin: 0 auto 22px;
+  line-height: 1.55;
+}
+
+/* -------------------------------------------------------------
+   Configurações / chaves de API
+   ------------------------------------------------------------- */
+.dash-secao-titulo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+.dash-config-aviso {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--marca-laranja);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+}
+
+.dash-config-aviso code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--badge-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.dash-chaves {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+
+.dash-chave {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.dash-chave-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-chave-nome {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dash-chave-estado {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 100px;
+  margin-left: auto;
+}
+
+.dash-chave-estado.ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+}
+
+.dash-chave-estado.falta {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+}
+
+.dash-chave-estado.falta.obrigatoria {
+  background: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+}
+
+.dash-chave-desc {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.dash-chave-desc em {
+  color: var(--text-muted);
+  font-style: normal;
+}
+
+.dash-chave-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dash-chave-campo input {
+  width: 100%;
+  background: var(--bg-root);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.dash-chave-campo input:focus {
+  border-color: var(--border-focus);
+}
+
+.dash-chave-campo input::placeholder {
+  color: var(--text-muted);
+  font-family: var(--font-main);
+}
+
+.dash-chave-onde {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.dash-chave-onde a {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.dash-chave-onde a:hover {
+  text-decoration: underline;
+}
+
+.dash-chaves-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------
+   Custos reais
+   ------------------------------------------------------------- */
+.custos-vazio {
+  padding: 30px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.custos-total {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--marca-laranja);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.custos-total-valor {
+  font-family: 'Bodoni Moda', Georgia, serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.custos-total-rotulo {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.custos-categorias {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.custos-categoria {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.custos-categoria-valor {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.custos-categoria-rotulo {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.custos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.custos-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.custos-item-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.custos-item-motivo {
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.custos-item-valor {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.custos-item-rodape {
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* -------------------------------------------------------------
+   O cabeçalho só mostra os controles da timeline quando ela está aberta
+   ------------------------------------------------------------- */
+body[data-view="dashboard"] .project-controls,
+body[data-view="dashboard"] .project-badges,
+body[data-view="dashboard"] .header-actions,
+body[data-view="novo"] .project-controls,
+body[data-view="novo"] .project-badges,
+body[data-view="novo"] .header-actions,
+body[data-view="nichos"] .project-controls,
+body[data-view="nichos"] .project-badges,
+body[data-view="nichos"] .header-actions {
+  display: none;
+}
+
+.header-voltar {
+  display: none;
+}
+
+body[data-view="editor"] .header-voltar,
+body[data-view="novo"] .header-voltar,
+body[data-view="nichos"] .header-voltar {
+  display: inline-flex;
+}
+
+@media (max-width: 900px) {
+  .dash-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dash-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Termos de Uso — TipLabs</title>
+  <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bodoni+Moda:opsz,wght@6..96,600;6..96,700&display=swap">
+  <style>
+    :root {
+      --bg-root: #0a0c10;
+      --bg-surface: #11131a;
+      --bg-card: #1a1e28;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-medium: rgba(255, 255, 255, 0.10);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --marca-laranja: #fd741e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg-root);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.65;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 56px 24px 100px;
+    }
+    a.voltar {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      margin-bottom: 28px;
+    }
+    a.voltar:hover { color: var(--text-primary); }
+    .marca {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .marca img { width: 32px; height: 32px; }
+    .marca span { font-family: 'Bodoni Moda', Georgia, serif; font-size: 20px; font-weight: 700; }
+    h1 {
+      font-family: 'Bodoni Moda', Georgia, serif;
+      font-size: 32px;
+      margin: 24px 0 6px;
+    }
+    .atualizado { color: var(--text-muted); font-size: 12.5px; margin-bottom: 40px; }
+    h2 {
+      font-size: 15px;
+      margin: 36px 0 10px;
+      color: var(--text-primary);
+    }
+    p, li { color: var(--text-secondary); font-size: 14px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    .aviso {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 2px solid var(--marca-laranja);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 24px 0;
+    }
+    footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="voltar" href="/">← Voltar ao TipLabs</a>
+    <div class="marca">
+      <img src="/img/logo-tiplabs.svg" alt="">
+      <span>TipLabs</span>
+    </div>
+    <h1>Termos de Uso</h1>
+    <p class="atualizado">Última atualização: 24 de setembro de 2026</p>
+
+    <p>O TipLabs é um painel de controle para a "fábrica de vídeos", um sistema pessoal que narra roteiros, monta vídeo automaticamente e ajuda a publicar o resultado no YouTube. Ao usar este painel, valem as regras abaixo.</p>
+
+    <h2>O que é o serviço</h2>
+    <p>O TipLabs é só a tela. Quem narra, busca as imagens, monta o vídeo e publica é a fábrica, rodando no computador de quem a instalou. O painel não guarda vídeo nenhum em servidor próprio — ele conversa direto com essa fábrica.</p>
+
+    <h2>Uso pessoal</h2>
+    <p>Esta ferramenta foi feita pra uso próprio e de pessoas de confiança do dono da fábrica, não é um produto comercial aberto ao público. Quem recebe acesso ao painel é responsável pelo conteúdo que gera e publica através dele.</p>
+
+    <h2>Conteúdo publicado no YouTube</h2>
+    <p>Ao usar a função "Publicar no YouTube", o vídeo é enviado com o título, descrição e visibilidade que você escolher, diretamente pra sua própria conta do YouTube — a responsabilidade pelo conteúdo publicado, incluindo direitos autorais de músicas e imagens usadas, é de quem publica.</p>
+
+    <h2>Sem garantias</h2>
+    <p>O serviço é oferecido "como está". Etapas que dependem de APIs externas (Google, ElevenLabs, YouTube, entre outras) podem falhar, mudar de preço ou ficar indisponíveis por causa dessas terceiras partes, fora do controle do TipLabs.</p>
+
+    <div class="aviso">
+      Este é um projeto pessoal, não uma empresa. Não há cobrança pelo uso do painel em si — os únicos custos são os das próprias APIs pagas que a fábrica usa (narração, imagens), e aparecem detalhados na tela de Custos do painel.
+    </div>
+
+    <h2>Contato</h2>
+    <p>Dúvidas sobre estes termos: <a href="mailto:jonathansantost99@gmail.com">jonathansantost99@gmail.com</a></p>
+
+    <footer>
+      <a href="/privacidade">Política de Privacidade</a> · <a href="/">TipLabs</a>
+    </footer>
+  </div>
+</body>
+</html>

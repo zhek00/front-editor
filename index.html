@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TipLabs - Editor de Vídeo</title>
+  <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
+
+  <!-- Fonte: conecta cedo e carrega em paralelo com o CSS (antes ficava importada dentro do main.css, o que atrasava tudo) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Bodoni+Moda:opsz,wght@6..96,600;6..96,700&display=swap">
+
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/nichos.css">
+  <link rel="stylesheet" href="/css/player.css">
+  <link rel="stylesheet" href="/css/timeline.css">
+  <link rel="stylesheet" href="/css/inspector.css">
+</head>
+<body>
+
+  <!-- Portão de acesso: cobre a tela inteira até um token válido ser confirmado
+       pela própria fábrica (nunca confiamos só no que está salvo no navegador). -->
+  <div id="gate-token" class="gate-overlay">
+    <form id="gate-form" class="gate-card" autocomplete="off">
+      <img src="/img/logo-tiplabs.svg" alt="" class="gate-marca" width="40" height="40">
+      <h1 class="gate-titulo">Conectar à fábrica</h1>
+      <p class="gate-texto">Este painel é só a tela: quem narra, busca imagens e monta o vídeo é a fábrica, rodando em algum computador. Informe o endereço dela e o token de acesso.</p>
+
+      <div class="dash-chave-campo">
+        <label class="dash-chave-nome" for="gate-input-url">Endereço da fábrica</label>
+        <input type="text" id="gate-input-url" autocomplete="off" spellcheck="false" placeholder="http://localhost:8080">
+      </div>
+      <div class="dash-chave-campo">
+        <label class="dash-chave-nome" for="gate-input-token">Token de acesso</label>
+        <input type="password" id="gate-input-token" autocomplete="new-password" name="tiplabs-token-fabrica" spellcheck="false" data-lpignore="true" placeholder="o código de acesso que você recebeu">
+      </div>
+
+      <button type="submit" id="gate-btn-entrar" class="btn btn-cta gate-btn">Entrar</button>
+      <p id="gate-status" class="gate-status"></p>
+    </form>
+  </div>
+
+  <div id="app-shell">
+    
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <a href="#/" class="brand-logo" title="Voltar ao painel">
+          <img src="/img/logo-tiplabs.svg" alt="" class="brand-mark" width="32" height="32">
+          <span class="brand-title">TipLabs</span>
+        </a>
+        <span class="brand-subtitle">Editor de Vídeo</span>
+
+        <button id="btn-voltar-painel" class="btn btn-secondary btn-sm header-voltar" title="Voltar ao painel">
+          ← Painel
+        </button>
+
+        <!-- Ações de Projeto: trocar de vídeo é só pelo painel -->
+        <div class="project-controls">
+          <button id="btn-novo-projeto" class="btn btn-secondary btn-sm btn-new-project" title="Criar Novo Projeto">
+            <span style="color: var(--accent-primary); font-weight: 700;">+</span> Novo Vídeo
+          </button>
+          <button id="btn-reload" class="btn btn-secondary btn-sm" title="Recarregar">Atualizar</button>
+          <button id="btn-excluir-projeto" class="btn btn-danger btn-sm" title="Excluir Projeto">Excluir Projeto</button>
+        </div>
+
+        <!-- Badges de Metadados -->
+        <div class="project-badges">
+          <span id="badge-duracao" class="badge">00:00</span>
+          <span id="badge-cenas" class="badge">0 cenas</span>
+          <span id="badge-status" class="badge">Carregando</span>
+        </div>
+      </div>
+
+      <!-- Ações Globais de Cabeçalho -->
+      <div class="header-actions">
+        <button id="btn-abrir-custos" class="btn btn-secondary btn-sm" title="Quanto esse vídeo já custou de verdade">
+          Custos
+        </button>
+        <button id="btn-ver-final" class="btn btn-secondary btn-sm" style="display: none;">
+          Ver Vídeo Final
+        </button>
+        <button id="btn-continuar" class="btn btn-secondary btn-sm" style="display: none;" title="Termina o que ficou pela metade: busca o material de acervo que falta e gera as imagens de IA que faltam. Mostra o custo antes e pede confirmação. O que já está pronto não é refeito.">
+          Continuar carregamento
+        </button>
+        <button id="btn-limpar-midia" class="btn btn-secondary btn-sm" title="Confere se a foto ou o vídeo de acervo de cada cena combina com a narração e troca o que não combina por outro material real (busca grátis no Pexels, Pixabay e Wikimedia). Só olha material real: cenas de imagem de IA são ignoradas e nenhuma imagem de IA é gerada. Uma IA de visão faz a conferência, e o provedor definido em config.yaml pode ter custo (centavos por cena com o Jev; grátis com o Groq).">
+          Corrigir Mídia
+        </button>
+        <button id="btn-save" class="btn btn-save btn-sm">
+          Salvar Alterações
+        </button>
+        <button id="btn-render" class="btn btn-render btn-sm">
+          Renderizar Vídeo
+        </button>
+      </div>
+    </header>
+
+    <!-- Painel inicial: lista de vídeos e configurações. É por aqui que o app abre. -->
+    <div id="view-dashboard" class="view-container" style="display: none;">
+      <div class="dash-wrapper">
+
+        <!-- Abertura -->
+        <div class="dash-hero">
+          <div class="dash-hero-texto">
+            <h1 class="dash-titulo">Seus vídeos</h1>
+            <p class="dash-subtitulo">Roteiro entra, vídeo narrado sai. Acompanhe a produção, assista ao resultado e volte a editar quando quiser.</p>
+          </div>
+          <div class="dash-hero-acoes">
+            <button id="btn-abrir-nichos" class="btn btn-secondary" title="Achar vídeos virais e comparar canais">
+              Procurar Nichos
+            </button>
+            <button id="btn-abrir-chaves" class="btn btn-secondary" title="Chaves de API">
+              Chaves de API
+            </button>
+            <button id="btn-dash-novo" class="btn btn-cta btn-dash-novo">
+              <span class="dash-novo-mais">+</span>
+              <span>Novo Vídeo</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Números gerais -->
+        <div class="dash-stats" id="dash-stats">
+          <div class="dash-stat">
+            <span class="dash-stat-valor" id="stat-total">—</span>
+            <span class="dash-stat-rotulo">vídeos</span>
+          </div>
+          <div class="dash-stat">
+            <span class="dash-stat-valor" id="stat-prontos">—</span>
+            <span class="dash-stat-rotulo">prontos</span>
+          </div>
+          <div class="dash-stat">
+            <span class="dash-stat-valor" id="stat-minutos">—</span>
+            <span class="dash-stat-rotulo">minutos produzidos</span>
+          </div>
+          <div class="dash-stat">
+            <span class="dash-stat-valor" id="stat-cenas">—</span>
+            <span class="dash-stat-rotulo">cenas montadas</span>
+          </div>
+        </div>
+
+        <!-- Vídeos -->
+        <section class="dash-painel active" data-painel="videos">
+          <div class="dash-filtros">
+            <button class="dash-filtro active" data-estado="todos">Todos</button>
+            <button class="dash-filtro" data-estado="prontos">Prontos</button>
+            <button class="dash-filtro" data-estado="producao">Em produção</button>
+            <button id="btn-dash-atualizar" class="btn btn-secondary btn-sm dash-atualizar">Atualizar</button>
+          </div>
+
+          <div id="dash-grade" class="dash-grade"></div>
+
+          <div id="dash-vazio" class="dash-vazio" style="display: none;">
+            <img src="/img/logo-tiplabs.svg" alt="" class="dash-vazio-marca" width="64" height="64">
+            <h2 class="dash-vazio-titulo">Nenhum vídeo por aqui ainda</h2>
+            <p class="dash-vazio-texto">Comece colando um roteiro. A fábrica narra, divide em cenas, busca as imagens e monta o vídeo.</p>
+            <button id="btn-vazio-novo" class="btn btn-cta">Criar o primeiro vídeo</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Modal: Chaves de API -->
+    <div id="modal-chaves" class="modal-overlay">
+      <div class="modal-card" style="max-width: 620px;">
+        <div class="modal-header">
+          <span class="modal-title">Chaves de API</span>
+          <button id="btn-modal-chaves-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 18px;">
+          <div class="dash-config-aviso">
+            As chaves ficam guardadas com segurança no computador que roda a fábrica.
+            Elas nunca aparecem inteiras nesta tela e não saem daqui.
+          </div>
+          <div id="dash-chaves" class="dash-chaves"></div>
+        </div>
+        <div class="modal-footer" style="padding: 12px 18px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface);">
+          <span id="dash-chaves-status" class="dash-chaves-status"></span>
+          <button id="btn-salvar-chaves" class="btn btn-cta">Salvar chaves</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Custos reais -->
+    <div id="modal-custos" class="modal-overlay">
+      <div class="modal-card" style="max-width: 680px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="modal-title">Custos reais</span>
+            <span id="custos-projeto-nome" class="badge"></span>
+          </div>
+          <button id="btn-modal-custos-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 18px;">
+          <div class="dash-config-aviso">
+            Só entra aqui o que já foi cobrado de verdade neste vídeo — narração, efeito sonoro,
+            imagem de IA e os modelos de texto que dividiram as cenas e escolheram o acervo. Cenas
+            ou trechos reaproveitados do cache não pagam de novo, então não aparecem.
+          </div>
+
+          <div id="custos-vazio" class="custos-vazio" style="display: none;">
+            Nenhum gasto registrado ainda neste vídeo.
+          </div>
+
+          <div id="custos-conteudo">
+            <div class="custos-total">
+              <span class="custos-total-valor" id="custos-total-valor">US$ 0,00</span>
+              <span class="custos-total-rotulo">gasto até agora, neste vídeo</span>
+            </div>
+
+            <div class="custos-categorias" id="custos-categorias"></div>
+
+            <h3 class="dash-secao-titulo" style="margin-top: 22px;">Narração</h3>
+            <div id="custos-narracao" class="custos-lista"></div>
+
+            <h3 class="dash-secao-titulo" style="margin-top: 22px;">Modelos de texto</h3>
+            <div id="custos-modelos" class="custos-lista"></div>
+
+            <h3 class="dash-secao-titulo" style="margin-top: 22px;">Detalhado</h3>
+            <div id="custos-lista" class="custos-lista"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tela Inicial / Criar Novo Vídeo -->
+    <div id="view-novo-projeto" class="view-container" style="display: none;">
+      <div class="novo-projeto-wrapper">
+        <div class="novo-projeto-card">
+          <div class="novo-projeto-header">
+            <div class="novo-projeto-badge">Estúdio de Criação</div>
+            <h1 class="novo-projeto-title">Criar Novo Vídeo Narrado</h1>
+            <p class="novo-projeto-subtitle">Insira o roteiro e configure a voz e estilo para gerar a narração, divisão de cenas e assets visuais automaticamente.</p>
+          </div>
+
+          <form id="form-novo-projeto" class="novo-projeto-form" onsubmit="return false;">
+            <!-- 1. Nome do Projeto -->
+            <div class="form-group">
+              <div class="form-label-row">
+                <label for="input-nome-projeto" class="form-label">Nome do Projeto</label>
+                <span class="form-hint">Apenas letras minúsculas, números e hífens</span>
+              </div>
+              <div class="input-with-prefix">
+                <span class="input-prefix">projetos/</span>
+                <input type="text" id="input-nome-projeto" class="form-input" placeholder="ex: animais-exoticos" required autocomplete="off" spellcheck="false">
+              </div>
+            </div>
+
+            <!-- 2. Roteiro do Vídeo -->
+            <div class="form-group">
+              <div class="form-label-row">
+                <label for="textarea-roteiro" class="form-label">Roteiro Completo</label>
+                <div class="roteiro-stats">
+                  <span id="roteiro-char-count">0 caracteres</span> • <span id="roteiro-word-count">0 palavras</span>
+                </div>
+              </div>
+              <textarea id="textarea-roteiro" class="form-textarea" placeholder="Cole aqui o roteiro narrado do seu vídeo...&#10;&#10;Exemplo: Você já imaginou ter em casa um animal tão fofo que parece ter saído de um desenho animado? Hoje vamos conhecer os 10 animais mais fascinantes da natureza..." rows="7" required></textarea>
+            </div>
+
+            <!-- 3. Perfil do canal: define voz padrão, estilo de imagem e diretrizes do nicho -->
+            <div class="form-group">
+              <div class="form-label-row">
+                <label for="select-perfil-novo" class="form-label">Perfil do Canal</label>
+                <span class="form-hint">Define o estilo de imagem e as diretrizes do nicho</span>
+              </div>
+              <div class="select-wrapper">
+                <select id="select-perfil-novo" class="form-select" required></select>
+                <span class="select-arrow">▼</span>
+              </div>
+            </div>
+
+            <!-- 4. Voz do Narrador -->
+            <div class="form-group">
+              <div class="form-label-row">
+                <label class="form-label">Voz do Narrador</label>
+                <span class="form-hint">ElevenLabs soa mais real; Edge-TTS é grátis, bom só pra teste</span>
+              </div>
+
+              <div class="voice-provider-toggle">
+                <button type="button" id="btn-voz-provedor-elevenlabs" class="voice-provider-btn active" data-provedor="elevenlabs">
+                  ElevenLabs
+                  <span class="voice-provider-tag">recomendado, custo por caractere</span>
+                </button>
+                <button type="button" id="btn-voz-provedor-edge" class="voice-provider-btn" data-provedor="edge-tts">
+                  Edge-TTS
+                  <span class="voice-provider-tag">grátis, ótimo pra testar sem gastar</span>
+                </button>
+              </div>
+
+              <!-- Painel ElevenLabs -->
+              <div id="painel-voz-elevenlabs">
+                <div id="voice-card-grid-novo" class="voice-card-grid" style="margin-top: 10px;"></div>
+
+                <div class="form-row-grid" style="margin-top: 10px;">
+                  <div class="form-group" style="margin: 0;">
+                    <label for="select-modelo-elevenlabs" class="form-label">Modelo (custo)</label>
+                    <div class="select-wrapper">
+                      <select id="select-modelo-elevenlabs" class="form-select"></select>
+                      <span class="select-arrow">▼</span>
+                    </div>
+                  </div>
+                </div>
+
+                <details class="voice-advanced-toggle" style="margin-top: 10px;">
+                  <summary>Ajuste fino da voz (estabilidade, similaridade, estilo, velocidade)</summary>
+                  <div class="voice-advanced-body">
+                    <div class="voice-slider-row">
+                      <div class="voice-slider-label"><span>Estabilidade</span><span id="valor-estabilidade-novo">0.50</span></div>
+                      <input type="range" id="slider-estabilidade-novo" class="voice-slider" min="0" max="1" step="0.05" value="0.5">
+                    </div>
+                    <div class="voice-slider-row">
+                      <div class="voice-slider-label"><span>Similaridade</span><span id="valor-similaridade-novo">0.75</span></div>
+                      <input type="range" id="slider-similaridade-novo" class="voice-slider" min="0" max="1" step="0.05" value="0.75">
+                    </div>
+                    <div class="voice-slider-row">
+                      <div class="voice-slider-label"><span>Estilo</span><span id="valor-estilo-novo">0.00</span></div>
+                      <input type="range" id="slider-estilo-novo" class="voice-slider" min="0" max="1" step="0.05" value="0">
+                    </div>
+                    <div class="voice-slider-row">
+                      <div class="voice-slider-label"><span>Velocidade</span><span id="valor-velocidade-novo">1.00x</span></div>
+                      <input type="range" id="slider-velocidade-novo" class="voice-slider" min="0.7" max="1.2" step="0.05" value="1.0">
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- Painel Edge-TTS -->
+              <div id="painel-voz-edge" style="display: none; margin-top: 10px;">
+                <div class="select-wrapper">
+                  <select id="select-voz" class="form-select">
+                    <option value="pt-BR-AntonioNeural">Antônio - pt-BR (Voz Masculina Natural)</option>
+                    <option value="pt-BR-FranciscaNeural">Francisca - pt-BR (Voz Feminina Expressiva)</option>
+                    <option value="pt-BR-ThalitaMultilingualNeural">Thalita - pt-BR (Voz Feminina Suave)</option>
+                    <option value="pt-PT-DuarteNeural">Duarte - pt-PT (Voz Masculina Portugal)</option>
+                    <option value="pt-PT-RaquelNeural">Raquel - pt-PT (Voz Feminina Portugal)</option>
+                  </select>
+                  <span class="select-arrow">▼</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4b. Provedor de Imagem de IA -->
+            <div class="form-group">
+              <div class="form-label-row">
+                <label class="form-label">Provedor de Imagem IA</label>
+                <span class="form-hint">Nano Banana 2 usa a mesma chave do Google já configurada; Kie.ai cobra à parte</span>
+              </div>
+              <div class="voice-provider-toggle">
+                <button type="button" id="btn-img-provedor-google" class="voice-provider-btn active" data-provedor="google">
+                  Nano Banana 2
+                  <span class="voice-provider-tag">Google, ótima qualidade</span>
+                </button>
+                <button type="button" id="btn-img-provedor-kie" class="voice-provider-btn" data-provedor="kie">
+                  Kie.ai
+                  <span class="voice-provider-tag">Grok Imagine, conta à parte</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 5. Ações do Formulário -->
+            <div class="novo-projeto-footer">
+              <button type="button" id="btn-cancelar-novo" class="btn btn-secondary">
+                Voltar ao painel
+              </button>
+              <button type="submit" id="btn-criar-projeto" class="btn btn-primary btn-cta">
+                <span>Criar Projeto e Gerar Cenas</span>
+                <span class="cta-arrow">→</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tela: Procurar Nichos -->
+    <div id="view-nichos" class="view-container" style="display: none;">
+      <div class="dash-wrapper">
+        <div class="dash-hero">
+          <div class="dash-hero-texto">
+            <h1 class="dash-titulo">Procurar Nichos</h1>
+            <p class="dash-subtitulo">Vídeos dos últimos 30 dias com visualização muito acima do tamanho do canal — o sinal mais forte de nicho quente. Sem Shorts, só vídeos narrados como os que a fábrica produz. Só dados públicos do YouTube.</p>
+          </div>
+          <button id="btn-voltar-nichos" class="btn btn-secondary" title="Voltar ao painel">
+            ← Painel
+          </button>
+        </div>
+
+        <form id="form-buscar-nichos" class="nichos-busca" onsubmit="return false;">
+          <input type="text" id="input-busca-nichos" class="nichos-busca-input"
+                 placeholder="Sobre o que é o nicho? Ex: curiosidades do espaço, histórias sombrias..."
+                 autocomplete="off">
+          <button type="submit" id="btn-buscar-nichos" class="btn btn-cta">Buscar</button>
+        </form>
+
+        <div id="nichos-status" class="nichos-status"></div>
+
+        <div id="nichos-grade" class="nichos-grade"></div>
+      </div>
+    </div>
+
+    <!-- Modal: Vídeos de um canal -->
+    <div id="modal-canal-videos" class="modal-overlay">
+      <div class="modal-card" style="max-width: 780px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <img id="canal-modal-avatar" src="" alt="" class="canal-modal-avatar">
+            <span id="canal-modal-nome" class="modal-title"></span>
+          </div>
+          <button id="btn-modal-canal-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 18px;">
+          <div id="canal-modal-grade" class="canal-modal-grade"></div>
+          <button id="btn-canal-carregar-mais" class="btn btn-secondary" style="margin-top: 14px; display: none;">
+            Carregar mais
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workspace Principal -->
+    <main id="view-editor" class="workspace-container">
+      
+      <!-- Painel Esquerdo: Lista de Cenas / Filmstrip -->
+      <aside class="left-panel">
+        <div class="panel-header">
+          <span class="panel-title">Cenas</span>
+        </div>
+
+        <!-- Filtros Rápidos -->
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="all">Todas</button>
+          <button class="filter-pill" data-filter="ia">IA</button>
+          <button class="filter-pill" data-filter="real">Real</button>
+          <button class="filter-pill" data-filter="sfx">SFX</button>
+          <button class="filter-pill" data-filter="sem_arquivo" id="filtro-sem-arquivo">Sem arquivo</button>
+        </div>
+
+        <!-- Lista Rolável de Cenas -->
+        <div id="scene-list-scroll" class="scene-list-scroll"></div>
+      </aside>
+
+      <!-- Painel Central: Viewport 16:9 + Transporte + Timeline Multi-Track -->
+      <section class="center-panel">
+        
+        <!-- Viewport 16:9 Cinema Player -->
+        <div class="viewport-section">
+            <div id="cinema-box" class="cinema-box">
+              <!-- Camadas Duplas para Transição e Crossfade Suave -->
+              <img id="cinema-image-a" class="cinema-layer cinema-image" alt="Preview A">
+              <img id="cinema-image-b" class="cinema-layer cinema-image" alt="Preview B">
+              <video id="cinema-video-a" class="cinema-layer cinema-video" playsinline loop muted></video>
+              <video id="cinema-video-b" class="cinema-layer cinema-video" playsinline loop muted></video>
+              <video id="cinema-video" class="cinema-layer cinema-video" style="display:none;" playsinline loop muted></video>
+              
+              <div id="cinema-empty" class="cinema-empty">
+                <span>Carregando estúdio...</span>
+              </div>
+
+            <!-- Overlays de Texto na Tela -->
+            <div class="cinema-overlay-container">
+              <div id="overlay-badge" class="overlay-badge">
+                <div id="overlay-badge-title" class="overlay-badge-title">LIVRO DE ENOQUE</div>
+                <div id="overlay-badge-sub" class="overlay-badge-sub">CAP 1</div>
+              </div>
+
+              <div id="overlay-highlight" class="overlay-highlight">
+                <div id="overlay-highlight-text" class="overlay-highlight-text">TEXTO EM DESTAQUE</div>
+              </div>
+            </div>
+
+            <!-- Legenda queimada -->
+            <div class="cinema-subtitle">
+              <span id="subtitle-text" class="subtitle-text" style="display: none;"></span>
+            </div>
+
+            <!-- Indicador Visual de Disparo de SFX -->
+            <div id="cinema-sfx-flash" class="cinema-sfx-flash">
+              <span>SFX:</span>
+              <span id="sfx-flash-text">distant rolling thunder</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Transporte e Controles -->
+        <div class="transport-bar">
+          <div class="transport-left">
+            <div class="timecode-box">
+              <span id="timecode-current" class="timecode-current">00:00.00</span>
+              <span class="timecode-divider">/</span>
+              <span id="timecode-total" class="timecode-total">00:00.00</span>
+            </div>
+          </div>
+
+          <div class="transport-center">
+            <button id="btn-prev-scene" class="transport-btn" title="Cena Anterior">|◀</button>
+            <button id="btn-back-1s" class="transport-btn" title="Voltar 1s">◀◀</button>
+            <button id="btn-play" class="transport-btn btn-play" title="Play / Pause">
+              <span id="btn-play-icon">▶</span>
+            </button>
+            <button id="btn-fwd-1s" class="transport-btn" title="Avançar 1s">▶▶</button>
+            <button id="btn-next-scene" class="transport-btn" title="Próxima Cena">▶|</button>
+          </div>
+
+          <div class="transport-right">
+            <button id="btn-ken-burns" class="motion-btn active" title="Movimento suave nas fotos">
+              Movimento
+            </button>
+            <div class="volume-control">
+              <input id="volume-slider" type="range" class="volume-slider" min="0" max="1" step="0.05" value="0.9">
+            </div>
+            <select id="speed-select" class="speed-select" title="Velocidade de Reprodução">
+              <option value="1">1.0x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2.0x</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Puxador pra redimensionar a altura da timeline -->
+        <div id="timeline-resize-handle" class="timeline-resize-handle" title="Arraste pra redimensionar a timeline"></div>
+
+        <!-- Timeline Multi-Track -->
+        <div id="timeline-section" class="timeline-section">
+          
+          <!-- Barra de Ferramentas da Timeline -->
+          <div class="timeline-toolbar">
+            <div class="timeline-track-labels-header">Faixas</div>
+            <div class="timeline-zoom-controls">
+              <span class="zoom-label">Zoom</span>
+              <button id="btn-zoom-out" class="zoom-btn" title="Diminuir Zoom">−</button>
+              <button id="btn-zoom-in" class="zoom-btn" title="Aumentar Zoom">+</button>
+            </div>
+          </div>
+
+          <div class="timeline-content-wrapper">
+            
+            <!-- Cabeçalhos das Faixas (Coluna Fixa à Esquerda) -->
+            <div class="timeline-track-headers">
+              <div class="track-header ruler-header">Tempo</div>
+              <div class="track-header video">
+                <span>Cenas</span>
+              </div>
+              <div class="track-header audio">
+                <span>Narração</span>
+              </div>
+              <div class="track-header sfx">
+                <span>SFX</span>
+              </div>
+              <div class="track-header music">
+                <span>Música</span>
+              </div>
+            </div>
+
+            <!-- Área de Faixas com Scroll Horizontal -->
+            <div id="timeline-tracks-scroll" class="timeline-tracks-scroll">
+              <div id="timeline-canvas-container" class="timeline-canvas-container">
+                
+                <!-- Régua de Tempo -->
+                <div id="time-ruler" class="time-ruler"></div>
+
+                <!-- Corpo das Faixas -->
+                <div id="tracks-body" class="tracks-body">
+                  <div id="track-video" class="timeline-track track-video"></div>
+                  <div id="track-audio" class="timeline-track track-audio"></div>
+                  <div id="track-sfx" class="timeline-track track-sfx"></div>
+                  <div id="track-music" class="timeline-track track-music"></div>
+                </div>
+
+                <!-- Playhead Interativo -->
+                <div id="timeline-playhead" class="timeline-playhead">
+                  <div id="playhead-handle" class="playhead-handle"></div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Gaveta de Terminal / Console de Execução -->
+        <div id="terminal-drawer" class="terminal-drawer">
+          <button id="btn-terminal-toggle" class="terminal-toggle-tab" title="Abrir/fechar o console de execução">
+            <span id="status-dot-toggle" class="status-dot"></span>
+            Console
+            <span id="terminal-toggle-arrow" class="terminal-toggle-arrow">▲</span>
+          </button>
+          <div class="terminal-header">
+            <div class="terminal-title">
+              <span id="status-dot" class="status-dot"></span>
+              <span id="terminal-title">Console de Execução</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button id="btn-terminal-clear" class="btn btn-secondary btn-sm">Limpar</button>
+              <button id="btn-terminal-close" class="btn btn-secondary btn-sm">Fechar</button>
+            </div>
+          </div>
+          <div id="terminal-body" class="terminal-body"></div>
+        </div>
+
+      </section>
+
+      <!-- Painel Direito: Inspetor de Propriedades (Cena, Áudio, SFX) -->
+      <aside class="right-panel">
+        <div class="inspector-header">
+          <div class="inspector-scene-title">
+            <span id="inspector-scene-title">Cena</span>
+            <span id="inspector-time-pill" class="scene-time-pill">0.0s - 0.0s</span>
+          </div>
+        </div>
+
+        <!-- Abas do Inspetor -->
+        <div class="inspector-tabs">
+          <div class="inspector-tab active" data-tab="cena">Visual</div>
+          <div class="inspector-tab" data-tab="audio">Áudio</div>
+          <div class="inspector-tab" data-tab="sfx">SFX</div>
+        </div>
+
+        <div class="inspector-body">
+          
+          <!-- Aba 1: Propriedades da Cena (Visual) -->
+          <div id="tab-pane-cena" class="tab-pane active">
+            
+            <!-- Tipo de Cena -->
+            <div class="form-card">
+              <label class="form-label">Origem Visual</label>
+              <div class="type-radio-grid">
+                <div class="type-radio-card active" data-type="ia">
+                  <span class="type-radio-name">IA</span>
+                </div>
+                <div class="type-radio-card" data-type="foto_real">
+                  <span class="type-radio-name">Foto Real</span>
+                </div>
+                <div class="type-radio-card" data-type="video_real">
+                  <span class="type-radio-name">Vídeo Real</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Campo de Prompt (para IA) -->
+            <div id="group-prompt" class="form-card">
+              <label class="form-label">
+                <span>Prompt da Imagem</span>
+              </label>
+              <textarea id="field-prompt" class="form-control" placeholder="Descreva a imagem em inglês..."></textarea>
+            </div>
+
+            <!-- Campo de Busca (para Foto/Vídeo Real) -->
+            <div id="group-busca" class="form-card" style="display: none;">
+              <label class="form-label">
+                <span>Termo de Busca</span>
+              </label>
+              <input id="field-busca" type="text" class="form-control" placeholder="Ex: Mount Hermon landscape">
+            </div>
+
+            <!-- Provedor de Imagem de IA -->
+            <div id="group-provedor-imagem" class="form-card">
+              <label class="form-label">
+                <span>Provedor de Imagem IA</span>
+                <span style="font-size: 9px; color: var(--text-muted)">Vale pro projeto inteiro</span>
+              </label>
+              <div class="voice-provider-toggle">
+                <button type="button" id="btn-img-provedor-google-insp" class="voice-provider-btn" data-provedor="google">
+                  Nano Banana 2
+                  <span class="voice-provider-tag">Google, ótima qualidade</span>
+                </button>
+                <button type="button" id="btn-img-provedor-kie-insp" class="voice-provider-btn" data-provedor="kie">
+                  Kie.ai
+                  <span class="voice-provider-tag">Grok Imagine, conta à parte</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Botões de Ação para Refazer -->
+            <button id="btn-refazer-ia" class="btn btn-primary btn-sm" style="display: none;">
+              Gerar nova imagem com IA
+            </button>
+            <button id="btn-refazer-busca" class="btn btn-primary btn-sm" style="display: none;">
+              Pesquisar novo material de acervo
+            </button>
+
+            <!-- Arrastar e Soltar (Upload Direto sem API) -->
+            <div class="form-card">
+              <label class="form-label">Upload Próprio (Drag-and-Drop)</label>
+              <div id="dropzone-media" class="dropzone-upload">
+                <span class="dropzone-text">Solte foto ou vídeo MP4 aqui</span>
+                <span class="dropzone-sub">Substitui a mídia desta cena sem custo de API</span>
+                <input id="input-file-media" type="file" accept="image/*,video/*" style="display: none;">
+              </div>
+            </div>
+
+            <!-- Versões Anteriores Salvas (antigas/) -->
+            <div id="section-antigas" class="form-card">
+              <label class="form-label">Histórico de Mídia (Desfazer)</label>
+              <div id="antigas-gallery" class="antigas-gallery">
+                <span style="font-size:11px;color:var(--text-muted)">Nenhuma versão anterior.</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Aba 2: Áudio & Narração (Refazer Áudio) -->
+          <div id="tab-pane-audio" class="tab-pane">
+            
+            <!-- Frase da Cena Atual -->
+            <div class="form-card">
+              <label class="form-label">Frase Desta Cena</label>
+              <div id="audio-narration-text" style="font-size: 11px; line-height: 1.5; color: var(--text-secondary); background: var(--bg-root); padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                Carregando texto...
+              </div>
+              <button id="btn-play-scene-audio" class="btn btn-secondary btn-sm" style="margin-top: 4px;">
+                Ouvir trecho da cena
+              </button>
+            </div>
+
+            <!-- Editor de Roteiro em Blocos -->
+            <div class="form-card">
+              <label class="form-label">
+                <span>Editor de Roteiro</span>
+                <span style="font-size: 9px; color: var(--text-muted)">Cache inteligente por blocos</span>
+              </label>
+              <textarea id="field-roteiro-completo" class="form-control" style="min-height: 110px; font-family: var(--font-mono); font-size: 11px;" placeholder="Texto completo do roteiro..."></textarea>
+            </div>
+
+            <!-- Configurações de Voz -->
+            <div class="form-card">
+              <label class="form-label">
+                <span>Configuração da Voz</span>
+                <span style="font-size: 9px; color: var(--text-muted)">Vale pro projeto inteiro</span>
+              </label>
+
+              <div class="voice-provider-toggle">
+                <button type="button" id="btn-voz-provedor-elevenlabs-insp" class="voice-provider-btn" data-provedor="elevenlabs">
+                  ElevenLabs
+                </button>
+                <button type="button" id="btn-voz-provedor-edge-insp" class="voice-provider-btn" data-provedor="edge-tts">
+                  Edge-TTS
+                </button>
+              </div>
+
+              <!-- Painel ElevenLabs -->
+              <div id="painel-voz-elevenlabs-insp" style="display: none;">
+                <div id="voice-card-grid-insp" class="voice-card-grid" style="margin-top: 8px;"></div>
+
+                <div style="margin-top: 8px;">
+                  <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">Modelo (custo)</span>
+                  <select id="select-modelo-elevenlabs-insp" class="form-control"></select>
+                </div>
+
+                <details class="voice-advanced-toggle" style="margin-top: 8px;">
+                  <summary>Ajuste fino da voz</summary>
+                  <div class="voice-advanced-body">
+                    <div class="voice-slider-row">
+                      <div class="voice-slider-label"><span>Estabilidade</span><span id="valor-estabilidade-insp">0.50</span></div>
+                      <input type="range" id="slider-estabilidade-insp" class="voice-slider" min="0" max="1" step="0.05" value="0.5">
+                    </div>
+                    <div class="voice-slider-row">
+                      <div class="voice-slider-label"><span>Similaridade</span><span id="valor-similaridade-insp">0.75</span></div>
+                      <input type="range" id="slider-similaridade-insp" class="voice-slider" min="0" max="1" step="0.05" value="0.75">
+                    </div>
+                    <div class="voice-slider-row">
+                      <div class="voice-slider-label"><span>Estilo</span><span id="valor-estilo-insp">0.00</span></div>
+                      <input type="range" id="slider-estilo-insp" class="voice-slider" min="0" max="1" step="0.05" value="0">
+                    </div>
+                    <div class="voice-slider-row">
+                      <div class="voice-slider-label"><span>Velocidade</span><span id="valor-velocidade-insp">1.00x</span></div>
+                      <input type="range" id="slider-velocidade-insp" class="voice-slider" min="0.7" max="1.2" step="0.05" value="1.0">
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- Painel Edge-TTS -->
+              <div id="painel-voz-edge-insp" style="display: none; margin-top: 8px;">
+                <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">Velocidade</span>
+                <select id="select-voz-velocidade" class="form-control">
+                  <option value="+0%">Padrão (+0%)</option>
+                  <option value="-10%">Lento (-10%)</option>
+                  <option value="+10%">Rápido (+10%)</option>
+                </select>
+              </div>
+
+              <!-- Botão Regerar Áudio -->
+              <button id="btn-regerar-audio" class="btn btn-primary btn-sm" style="margin-top: 10px;">
+                Regerar Áudio (Apenas Blocos Alterados)
+              </button>
+            </div>
+
+            <!-- Trilha Sonora do Canal -->
+            <div class="form-card">
+              <label class="form-label">Trilha Musical de Fundo</label>
+              <select id="select-music-track" class="form-control">
+                <option value="">Trilha padrão do perfil</option>
+              </select>
+              <button id="btn-preview-music" class="btn btn-secondary btn-sm" style="margin-top: 4px;">
+                Prévia da Trilha
+              </button>
+            </div>
+          </div>
+
+          <!-- Aba 3: Efeitos Sonoros (SFX) -->
+          <div id="tab-pane-sfx" class="tab-pane">
+            
+            <!-- Habilitar SFX -->
+            <div class="form-card">
+              <div class="toggle-wrapper">
+                <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary)">Habilitar Efeito Sonoro</span>
+                <label class="toggle-switch">
+                  <input id="toggle-sfx" type="checkbox">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Controles do SFX -->
+            <div id="sfx-controls-body" style="display: flex; flex-direction: column; gap: 10px;">
+              
+              <!-- Mini-Player de Pré-Escuta do Som -->
+              <div id="sfx-player-card" class="sfx-player-card">
+                <div class="sfx-info-meta">
+                  <div id="sfx-player-title" class="sfx-title">distant rolling thunder</div>
+                  <div id="sfx-player-dur" class="sfx-dur">2.0s</div>
+                </div>
+                <button id="btn-play-sfx-preview" class="sfx-play-btn" title="Ouvir SFX">▶ Ouvir</button>
+              </div>
+
+              <!-- Escolha a partir da biblioteca existente -->
+              <div class="form-card">
+                <label class="form-label">Biblioteca de Efeitos</label>
+                <select id="select-sfx-library" class="form-control">
+                  <option value="">-- Selecionar da biblioteca --</option>
+                </select>
+              </div>
+
+              <!-- Descrição do Som para Geração -->
+              <div class="form-card">
+                <label class="form-label">Descrição (Inglês)</label>
+                <input id="field-sfx-desc" type="text" class="form-control" placeholder="Ex: distant rolling thunder">
+              </div>
+
+              <!-- Ancoragem e Timing -->
+              <div class="form-card">
+                <label class="form-label">Início Relativo (Segundos)</label>
+                <input id="field-sfx-inicio" type="number" step="0.1" class="form-control" placeholder="0.0">
+
+                <label class="form-label" style="margin-top: 6px;">Duração (Segundos)</label>
+                <input id="field-sfx-duracao" type="number" step="0.5" class="form-control" placeholder="2.0">
+
+                <label class="form-label" style="margin-top: 6px;">Palavra de Ancoragem</label>
+                <input id="field-sfx-palavra" type="text" class="form-control" placeholder="Ex: desceu">
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- Modal de Configurações de Renderização -->
+    <div id="modal-render-options" class="modal-overlay">
+      <div class="modal-card" style="max-width: 520px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="modal-title">Renderizar Vídeo Final</span>
+          </div>
+          <button id="btn-modal-render-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 18px;">
+          <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+            Todas as cenas foram revisadas. Vamos sincronizar os cortes, aplicar transições suaves, queimar a legenda e mixar a trilha sonora.
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-card">
+              <label class="form-label">Resolução</label>
+              <select id="render-opt-resolucao" class="form-control">
+                <option value="1080p" selected>1080p (Full HD 16:9)</option>
+                <option value="720p">720p (HD)</option>
+                <option value="4k">4K (Ultra HD)</option>
+              </select>
+            </div>
+            <div class="form-card">
+              <label class="form-label">Taxa de Quadros (FPS)</label>
+              <select id="render-opt-fps" class="form-control">
+                <option value="30" selected>30 FPS (Padrão)</option>
+                <option value="60">60 FPS (Ultra-Fluido)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-card" style="gap: 10px;">
+            <div class="toggle-wrapper">
+              <div>
+                <div style="font-size: 12px; font-weight: 500;">Legendas Sincronizadas</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Queimar legendas dinâmicas no clipe final</div>
+              </div>
+              <label class="toggle-switch">
+                <input id="render-opt-legenda" type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-wrapper">
+              <div>
+                <div style="font-size: 12px; font-weight: 500;">Trilha Sonora de Fundo</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Mixar música com volume calibrado (-16 dB)</div>
+              </div>
+              <label class="toggle-switch">
+                <input id="render-opt-musica" type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-wrapper">
+              <div>
+                <div style="font-size: 12px; font-weight: 500;">Movimento de Câmera (Ken Burns)</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Zoom in/out suave (3% a 5%) nas fotos e imagens IA</div>
+              </div>
+              <label class="toggle-switch">
+                <input id="render-opt-camera" type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+            <button id="btn-cancel-render" class="btn btn-secondary">Cancelar</button>
+            <button id="btn-confirm-render" class="btn btn-primary" style="background: #2563eb; border-color: #3b82f6; color: #fff;">
+              Iniciar Renderização (MP4)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Progresso em Tempo Real -->
+    <div id="modal-render-progress" class="modal-overlay">
+      <div class="modal-card" style="max-width: 500px; text-align: center;">
+        <div class="modal-header">
+          <span class="modal-title">Renderizando Vídeo Final</span>
+          <span id="render-status-badge" class="badge badge-warning">Em processamento</span>
+        </div>
+        <div class="modal-body" style="padding: 28px 24px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+          <!-- Spinner Pulsante -->
+          <div class="render-pulse-loader"></div>
+
+          <!-- Porcentagem Grande -->
+          <div style="display: flex; align-items: baseline; gap: 4px;">
+            <span id="render-progress-pct" style="font-size: 38px; font-weight: 700; font-family: var(--font-mono); color: #f8fafc;">0%</span>
+          </div>
+
+          <!-- Barra de Progresso Suave -->
+          <div class="progress-track" style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: 9999px; overflow: hidden; position: relative;">
+            <div id="render-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 9999px; transition: width 400ms cubic-bezier(0.16, 1, 0.3, 1);"></div>
+          </div>
+
+          <!-- Etapa Atual Textual -->
+          <div id="render-progress-stage" style="font-size: 12px; color: var(--text-secondary); min-height: 20px; font-weight: 500;">
+            Iniciando a montagem...
+          </div>
+
+          <div style="font-size: 11px; color: var(--text-muted);">
+            Isso roda no computador da fábrica, em segundo plano.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Assistir e Baixar o Vídeo Final Renderizado -->
+    <div id="modal-final-video" class="modal-overlay">
+      <div class="modal-card" style="max-width: 860px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="modal-title">Vídeo Final Pronto (MP4)</span>
+            <span id="final-video-dur" class="badge badge-success">--:--</span>
+            <span id="final-video-size" class="badge">-- MB</span>
+          </div>
+          <button id="btn-modal-final-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 0; background: #000;">
+          <video id="modal-final-player" controls style="width: 100%; max-height: 65vh; display: block;"></video>
+        </div>
+        <div class="modal-footer" style="padding: 12px 18px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface);">
+          <div style="font-size: 11px; color: var(--text-muted);">
+            Vídeo pronto para publicação no YouTube ou redes sociais.
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-copy-credits" class="btn btn-secondary">
+              📋 Copiar Créditos para o YouTube
+            </button>
+            <a id="btn-download-final" class="btn btn-primary" href="#" download="video_final.mp4" style="background: #2563eb; border-color: #3b82f6; color: #fff; text-decoration: none;">
+              ⬇ Baixar Vídeo MP4
+            </a>
+            <button id="btn-abrir-youtube-publicar" class="btn btn-cta">
+              ▶ Publicar no YouTube
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Publicar no YouTube -->
+    <div id="modal-youtube-publicar" class="modal-overlay">
+      <div class="modal-card" style="max-width: 560px;">
+        <div class="modal-header">
+          <span class="modal-title">Publicar no YouTube</span>
+          <button id="btn-modal-youtube-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 18px; display: flex; flex-direction: column; gap: 16px;">
+
+          <!-- Não conectado -->
+          <div id="yt-nao-conectado" style="display: none;">
+            <div class="dash-config-aviso">
+              Conecte a conta do YouTube que vai receber os vídeos. Só precisa fazer isso uma vez.
+            </div>
+            <a id="link-youtube-conectar" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-cta" style="width: 100%; justify-content: center; margin-top: 10px; text-decoration: none;">
+              Conectar ao YouTube
+            </a>
+            <button id="btn-youtube-ja-conectei" class="btn btn-secondary" style="width: 100%; justify-content: center; margin-top: 8px;">
+              Já conectei, atualizar
+            </button>
+          </div>
+
+          <!-- Conectado -->
+          <div id="yt-conectado-info" style="display: none; align-items: center; gap: 10px;">
+            <img id="yt-canal-avatar" src="" alt="" style="width: 32px; height: 32px; border-radius: 50%;">
+            <span id="yt-canal-nome" style="font-size: 13px; color: var(--text-primary); flex: 1;"></span>
+            <button id="btn-youtube-desconectar" class="btn btn-secondary btn-sm">Desconectar</button>
+          </div>
+
+          <!-- Já publicado/agendado -->
+          <div id="yt-ja-publicado" style="display: none;">
+            <div class="dash-config-aviso" id="yt-ja-publicado-texto"></div>
+            <a id="yt-ja-publicado-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="width: 100%; justify-content: center; margin-top: 10px; text-decoration: none;">
+              Ver no YouTube
+            </a>
+            <button id="btn-youtube-publicar-de-novo" class="btn btn-secondary" style="width: 100%; justify-content: center; margin-top: 8px; font-size: 11px;">
+              Publicar de novo mesmo assim
+            </button>
+          </div>
+
+          <!-- Formulário -->
+          <form id="form-youtube-publicar" style="display: none; flex-direction: column; gap: 12px;" onsubmit="return false;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="yt-input-titulo">Título</label>
+              <input type="text" id="yt-input-titulo" class="form-input" maxlength="100" required>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="yt-input-descricao">Descrição</label>
+              <textarea id="yt-input-descricao" class="form-textarea" rows="4" maxlength="5000"></textarea>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="yt-input-tags">Tags (separadas por vírgula)</label>
+              <input type="text" id="yt-input-tags" class="form-input" placeholder="curiosidades, espaço, documentário">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label">Privacidade</label>
+              <div class="select-wrapper">
+                <select id="yt-input-privacidade" class="form-select">
+                  <option value="public">Público</option>
+                  <option value="unlisted">Não listado</option>
+                  <option value="private">Privado</option>
+                </select>
+                <span class="select-arrow">▼</span>
+              </div>
+            </div>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-secondary); cursor: pointer;">
+              <input type="checkbox" id="yt-input-agendar">
+              Agendar em vez de publicar agora
+            </label>
+            <div id="yt-agendar-campo" class="form-group" style="margin: 0; display: none;">
+              <label class="form-label" for="yt-input-data">Publicar em</label>
+              <input type="datetime-local" id="yt-input-data" class="form-input">
+            </div>
+
+            <button type="submit" id="btn-youtube-enviar" class="btn btn-cta" style="width: 100%; justify-content: center;">
+              Publicar
+            </button>
+          </form>
+
+          <!-- Progresso -->
+          <div id="yt-progresso" style="display: none; flex-direction: column; gap: 8px; text-align: center;">
+            <div class="progress-track" style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: 9999px; overflow: hidden;">
+              <div id="yt-progresso-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 300ms;"></div>
+            </div>
+            <span id="yt-progresso-texto" style="font-size: 12px; color: var(--text-secondary);">Enviando...</span>
+          </div>
+
+          <div id="yt-status" class="nichos-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Confirmação para Excluir Projeto -->
+    <div id="modal-excluir-projeto" class="modal-overlay">
+      <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+          <span class="modal-title">Excluir Projeto</span>
+          <button id="btn-modal-excluir-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 13px; color: var(--text-primary); line-height: 1.5;">
+            Tem certeza que deseja excluir o projeto <strong id="excluir-projeto-nome">-</strong>?
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+            Isso apaga a pasta do projeto inteira — roteiro, cenas, áudio e vídeo renderizado. Essa ação não pode ser desfeita.
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 12px 18px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: flex-end; gap: 8px; background: var(--bg-surface);">
+          <button id="btn-cancelar-excluir" class="btn btn-secondary">Cancelar</button>
+          <button id="btn-confirmar-excluir" class="btn btn-danger">Excluir Projeto</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Progresso da Criação com Stepper de 4 Passos -->
+    <div id="modal-criacao-stepper" class="modal-overlay">
+      <div class="modal-card modal-stepper-card">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="modal-title">Gerando Projeto de Vídeo</span>
+            <span id="criacao-proj-badge" class="badge">novo-projeto</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="criacao-status-pill" class="badge badge-warning">Processando</span>
+            <button id="btn-modal-stepper-minimize" class="btn-icon" title="Minimizar para segundo plano" style="background: transparent; border: 1px solid var(--border-subtle); color: var(--text-secondary); cursor: pointer; padding: 2px 8px; border-radius: var(--radius-xs); font-size: 13px; line-height: 1;">─</button>
+            <button id="btn-modal-stepper-close" class="modal-close" title="Fechar visualização (processamento continua)">✕</button>
+          </div>
+        </div>
+
+        <div class="modal-body stepper-modal-body">
+          <!-- Stepper Horizontal com 4 Nós Conectados -->
+          <div class="stepper-container">
+            <!-- Passo 1: Narração -->
+            <div id="step-node-1" class="step-node active">
+              <div class="step-circle">
+                <span class="step-icon">🎙️</span>
+                <span class="step-check">✓</span>
+              </div>
+              <div class="step-info">
+                <span class="step-num">Passo 1</span>
+                <span class="step-name">Roteiro & Narração</span>
+                <span class="step-desc">Mapa, JSON de cenas & áudio</span>
+              </div>
+            </div>
+
+            <div id="step-line-1" class="step-line"></div>
+
+            <!-- Passo 2: Cenas -->
+            <div id="step-node-2" class="step-node pending">
+              <div class="step-circle">
+                <span class="step-icon">🎬</span>
+                <span class="step-check">✓</span>
+              </div>
+              <div class="step-info">
+                <span class="step-num">Passo 2</span>
+                <span class="step-name">Cenas</span>
+                <span class="step-desc">Encaixe na timeline</span>
+              </div>
+            </div>
+
+            <div id="step-line-2" class="step-line"></div>
+
+            <!-- Passo 3: Acervo -->
+            <div id="step-node-3" class="step-node pending">
+              <div class="step-circle">
+                <span class="step-icon">📦</span>
+                <span class="step-check">✓</span>
+              </div>
+              <div class="step-info">
+                <span class="step-num">Passo 3</span>
+                <span class="step-name">Acervo</span>
+                <span class="step-desc">Pexels & Pixabay</span>
+              </div>
+            </div>
+
+            <div id="step-line-3" class="step-line"></div>
+
+            <!-- Passo 4: Conferência das cenas -->
+            <div id="step-node-4" class="step-node pending">
+              <div class="step-circle">
+                <span class="step-icon">🔍</span>
+                <span class="step-check">✓</span>
+              </div>
+              <div class="step-info">
+                <span class="step-num">Passo 4</span>
+                <span class="step-name">Conferência</span>
+                <span class="step-desc">Jev: imagem x narração</span>
+              </div>
+            </div>
+
+            <div id="step-line-4" class="step-line"></div>
+
+            <!-- Passo 5: Imagens IA -->
+            <div id="step-node-5" class="step-node pending">
+              <div class="step-circle">
+                <span class="step-icon">🎨</span>
+                <span class="step-check">✓</span>
+              </div>
+              <div class="step-info">
+                <span class="step-num">Passo 5</span>
+                <span class="step-name">Imagens IA</span>
+                <span class="step-desc">Qwen Z-Image (Kie.ai)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Indicador Central de Progresso -->
+          <div class="stepper-progress-box">
+            <div class="stepper-progress-head">
+              <span id="criacao-status-msg" class="stepper-msg">Iniciando geração de narração...</span>
+              <span id="criacao-progress-pct" class="stepper-pct">0%</span>
+            </div>
+            <div class="progress-track" style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: 9999px; overflow: hidden;">
+              <div id="criacao-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 9999px; transition: width 400ms cubic-bezier(0.16, 1, 0.3, 1);"></div>
+            </div>
+          </div>
+
+          <!-- Mapa do roteiro: o JSON do agente de roteiro, assim que ele termina de ler o roteiro inteiro -->
+          <div id="criacao-mapa" class="stepper-mapa" style="display: none;"></div>
+
+          <!-- Banner Animado de Sucesso -->
+          <div id="criacao-success-banner" class="criacao-success-banner" style="display: none;">
+            <span class="success-icon">✨</span>
+            <span class="success-text">Tudo pronto! Carregando estúdio...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Widget Flutuante de Progresso Minimizado -->
+    <div id="criacao-minimized-widget" class="floating-progress-widget" style="display: none;">
+      <div class="floating-widget-content">
+        <div class="floating-spinner"></div>
+        <div class="floating-info">
+          <div class="floating-title-row">
+            <span id="floating-proj-name" class="floating-proj-name">novo-projeto</span>
+            <span id="floating-pct" class="floating-pct">0%</span>
+          </div>
+          <div id="floating-stage" class="floating-stage">Gerando em segundo plano...</div>
+        </div>
+      </div>
+      <button id="btn-floating-expand" class="btn-floating-expand" title="Expandir visualização completa">
+        ⤢ Expandir
+      </button>
+    </div>
+
+    <!-- Container de Notificações Toast -->
+    <div id="toast-container"></div>
+
+  </div>
+
+  <!-- JavaScript Modules -->
+  <!-- endereço da fábrica; carrega antes do api.js para servir de padrão -->
+  <script src="/config.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/gate.js"></script>
+  <script src="/js/voice-picker.js"></script>
+  <script src="/js/player.js"></script>
+  <script src="/js/timeline.js"></script>
+  <script src="/js/inspector.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/nichos.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

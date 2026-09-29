@@ -1,0 +1,15 @@
+# O servidor local de desenvolvimento não vai para a Vercel: lá o site é
+# estático e a fábrica roda na máquina de quem publica.
+server.py
+__pycache__/
+temp/
+
+# Fonte original da logo, já convertida para img/
+5.svg
+
+# Documentação interna
+AGENTS.md
+CLAUDE.md
+
+# Imagem do wordmark, guardada como referencia da marca
+2.webp
