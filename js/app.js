@@ -118,12 +118,12 @@ class StudioApp {
     this.textareaRoteiro = document.getElementById('textarea-roteiro');
     this.selectVoz = document.getElementById('select-voz');
     this.voicePicker = new VoicePicker({
-      btnElevenlabs: 'btn-voz-provedor-elevenlabs',
+      btnGenaipro: 'btn-voz-provedor-genaipro',
       btnEdge: 'btn-voz-provedor-edge',
-      painelElevenlabs: 'painel-voz-elevenlabs',
+      painelGenaipro: 'painel-voz-genaipro',
       painelEdge: 'painel-voz-edge',
       voiceGrid: 'voice-card-grid-novo',
-      modelo: 'select-modelo-elevenlabs',
+      modelo: 'select-modelo-genaipro',
       estabilidade: 'slider-estabilidade-novo',
       similaridade: 'slider-similaridade-novo',
       estilo: 'slider-estilo-novo',
@@ -134,7 +134,7 @@ class StudioApp {
       valorVelocidade: 'valor-velocidade-novo',
       vozEdge: 'select-voz',
     });
-    this.voicePicker.setProvedor('elevenlabs');
+    this.voicePicker.setProvedor('genaipro');
     this.imgProvedor = 'kie';
     this.btnImgProvedorGoogle = document.getElementById('btn-img-provedor-google');
     this.btnImgProvedorKie = document.getElementById('btn-img-provedor-kie');
@@ -725,8 +725,8 @@ class StudioApp {
       }
 
       const valorVoz = this.voicePicker.getValue();
-      const vozElevenlabs = valorVoz.provedor === 'elevenlabs' ? valorVoz : null;
-      const resp = await API.criarProjeto({ nome, roteiro, perfil, voz, vozElevenlabs, imagensProvedor: this.imgProvedor });
+      const vozGenaipro = valorVoz.provedor === 'genaipro' ? valorVoz : null;
+      const resp = await API.criarProjeto({ nome, roteiro, perfil, voz, vozGenaipro, imagensProvedor: this.imgProvedor });
       const tarefaId = resp.tarefa_id;
 
       this.notify('Projeto iniciado! O agente está lendo o roteiro; acompanhe as etapas no Stepper.', 'info');

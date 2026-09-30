@@ -434,7 +434,7 @@ const API = {
   // 13. Criar Novo Projeto (Contrato Oficial)
   // Sem campo de perfil: o estilo de vídeo é fixo no backend (perfis/padrao.yaml), a pessoa só
   // escolhe roteiro, voz e provedor de imagem.
-  async criarProjeto({ nome, roteiro, perfil, voz, vozElevenlabs, imagensProvedor }) {
+  async criarProjeto({ nome, roteiro, perfil, voz, vozGenaipro, imagensProvedor }) {
     const payload = {
       nome: nome.trim().toLowerCase(),
       roteiro: roteiro.trim(),
@@ -443,15 +443,16 @@ const API = {
     if (perfil) {
       payload.perfil = perfil;
     }
-    if (vozElevenlabs) {
-      payload.voz_provedor = 'elevenlabs';
-      payload.voz_elevenlabs_id = vozElevenlabs.voice_id;
-      payload.voz_elevenlabs_modelo = vozElevenlabs.modelo;
-      payload.voz_elevenlabs_idioma = vozElevenlabs.idioma;
-      payload.voz_estabilidade = vozElevenlabs.estabilidade;
-      payload.voz_similaridade = vozElevenlabs.similaridade;
-      payload.voz_estilo = vozElevenlabs.estilo;
-      payload.voz_velocidade = vozElevenlabs.velocidade;
+    if (vozGenaipro) {
+      payload.voz_provedor = 'genaipro';
+      payload.voz_id = vozGenaipro.voice_id;
+      payload.voz_nome = vozGenaipro.nome;
+      payload.voz_modelo = vozGenaipro.modelo;
+      payload.voz_idioma = vozGenaipro.idioma;
+      payload.voz_estabilidade = vozGenaipro.estabilidade;
+      payload.voz_similaridade = vozGenaipro.similaridade;
+      payload.voz_estilo = vozGenaipro.estilo;
+      payload.voz_velocidade = vozGenaipro.velocidade;
     }
     if (imagensProvedor) {
       payload.imagens_provedor = imagensProvedor;
@@ -506,13 +507,29 @@ const API = {
     ];
   },
 
-  // 16. Lista curada de vozes ElevenLabs pra documentário (3 por idioma) + modelos com custo relativo
-  async getVozesElevenLabs(idioma = 'pt') {
+  // 16. Vozes da biblioteca da GenAIPro (idioma, gênero e busca) + os modelos de narração. Não gasta créditos.
+  async getVozesGenaipro({ idioma = 'pt', genero = '', busca = '' } = {}) {
+    const q = new URLSearchParams({ idioma, genero, busca });
     try {
-      const res = await this.req(`/api/vozes/elevenlabs?idioma=${encodeURIComponent(idioma)}`);
+      const res = await this.req(`/api/vozes/genaipro?${q}`);
       if (res.ok) return await res.json();
-    } catch (_) {}
-    return { vozes: [], modelos: [], idiomas: [] };
+      const err = await res.json().catch(() => ({}));
+      return { vozes: [], modelos: [], idiomas: [], erro: err.detail || 'Não deu pra carregar as vozes da GenAIPro.' };
+    } catch (_) {
+      return { vozes: [], modelos: [], idiomas: [], erro: 'Sem conexão com o backend pra carregar as vozes.' };
+    }
+  },
+
+  // 16b. Saldo da GenAIPro: créditos, quando vencem e quantos minutos de narração rendem
+  async getCreditosGenaipro() {
+    try {
+      const res = await this.req(`/api/genaipro/creditos`);
+      if (res.ok) return await res.json();
+      const err = await res.json().catch(() => ({}));
+      return { configurada: false, erro: err.detail || 'Não deu pra ler o saldo da GenAIPro.' };
+    } catch (_) {
+      return { configurada: false, erro: 'Sem conexão com o backend pra ler o saldo da GenAIPro.' };
+    }
   },
 
   // 17b. Aponta mídia suspeita nas cenas, sem mudar nada

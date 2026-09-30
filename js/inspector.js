@@ -36,12 +36,12 @@ class StudioInspector {
     this.fieldRoteiroCompleto = document.getElementById('field-roteiro-completo');
     this.selectVozVelocidade = document.getElementById('select-voz-velocidade');
     this.voicePicker = new VoicePicker({
-      btnElevenlabs: 'btn-voz-provedor-elevenlabs-insp',
+      btnGenaipro: 'btn-voz-provedor-genaipro-insp',
       btnEdge: 'btn-voz-provedor-edge-insp',
-      painelElevenlabs: 'painel-voz-elevenlabs-insp',
+      painelGenaipro: 'painel-voz-genaipro-insp',
       painelEdge: 'painel-voz-edge-insp',
       voiceGrid: 'voice-card-grid-insp',
-      modelo: 'select-modelo-elevenlabs-insp',
+      modelo: 'select-modelo-genaipro-insp',
       estabilidade: 'slider-estabilidade-insp',
       similaridade: 'slider-similaridade-insp',
       estilo: 'slider-estilo-insp',
@@ -52,7 +52,7 @@ class StudioInspector {
       valorVelocidade: 'valor-velocidade-insp',
       velocidadeEdge: 'select-voz-velocidade',
     });
-    this.voicePicker.setProvedor('elevenlabs');
+    this.voicePicker.setProvedor('genaipro');
     this.voicePicker.init();
     this.btnRegerarAudio = document.getElementById('btn-regerar-audio');
     this.btnPlaySceneAudio = document.getElementById('btn-play-scene-audio');

@@ -1038,7 +1038,7 @@ button, input, select, textarea {
   border-color: var(--border-focus);
 }
 
-/* Alternância de Provedor de Voz (ElevenLabs / Edge-TTS) */
+/* Alternância de Provedor de Voz (GenAIPro / Edge-TTS) */
 .voice-provider-toggle {
   display: flex;
   gap: 6px;
@@ -1122,7 +1122,7 @@ button, input, select, textarea {
   line-height: 1;
 }
 
-/* Grade de cartões de voz curados (ElevenLabs) */
+/* Grade de cartões de voz da biblioteca da GenAIPro */
 .voice-card-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1167,6 +1167,124 @@ button, input, select, textarea {
   font-size: 9.5px;
   line-height: 1.35;
   color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Biblioteca da GenAIPro: a lista é longa, então rola dentro de si */
+.voice-card-grid {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.voice-card-grid-estreita {
+  grid-template-columns: 1fr;
+  max-height: 240px;
+}
+
+.voice-card-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.voice-card-meta {
+  font-size: 9.5px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+.voice-card-fixa {
+  border-style: dashed;
+}
+
+.voice-play {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.voice-play:hover {
+  border-color: rgba(253, 116, 30, 0.5);
+  color: #ffb27a;
+}
+
+/* Barra acima da grade: saldo, idioma, busca e gênero. Montada pelo voice-picker.js */
+.voice-toolbar {
+  margin-top: 10px;
+}
+
+.voice-creditos {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-root);
+  border: 1px solid var(--border-subtle);
+}
+
+.voice-creditos strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.voice-creditos-alerta {
+  border-color: rgba(253, 116, 30, 0.45);
+  color: #ffb27a;
+}
+
+.voice-filtros {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.voice-filtros .voice-busca {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.voice-filtros .voice-genero {
+  width: auto;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.voice-status {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.voice-status-erro {
+  color: #fca5a5;
+}
+
+.voice-custo {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.voice-slider:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* Sliders de ajuste fino de voz (estabilidade, similaridade, estilo, velocidade) */

@@ -277,13 +277,13 @@
             <div class="form-group">
               <div class="form-label-row">
                 <label class="form-label">Voz do Narrador</label>
-                <span class="form-hint">ElevenLabs soa mais real; Edge-TTS é grátis, bom só pra teste</span>
+                <span class="form-hint">GenAIPro soa mais real; Edge-TTS é grátis, bom só pra teste</span>
               </div>
 
               <div class="voice-provider-toggle">
-                <button type="button" id="btn-voz-provedor-elevenlabs" class="voice-provider-btn active" data-provedor="elevenlabs">
-                  ElevenLabs
-                  <span class="voice-provider-tag">recomendado, custo por caractere</span>
+                <button type="button" id="btn-voz-provedor-genaipro" class="voice-provider-btn active" data-provedor="genaipro">
+                  GenAIPro
+                  <span class="voice-provider-tag">recomendado, vozes da ElevenLabs por créditos</span>
                 </button>
                 <button type="button" id="btn-voz-provedor-edge" class="voice-provider-btn" data-provedor="edge-tts">
                   Edge-TTS
@@ -291,15 +291,15 @@
                 </button>
               </div>
 
-              <!-- Painel ElevenLabs -->
-              <div id="painel-voz-elevenlabs">
-                <div id="voice-card-grid-novo" class="voice-card-grid" style="margin-top: 10px;"></div>
+              <!-- Painel GenAIPro -->
+              <div id="painel-voz-genaipro">
+                <div id="voice-card-grid-novo" class="voice-card-grid"></div>
 
                 <div class="form-row-grid" style="margin-top: 10px;">
                   <div class="form-group" style="margin: 0;">
-                    <label for="select-modelo-elevenlabs" class="form-label">Modelo (custo)</label>
+                    <label for="select-modelo-genaipro" class="form-label">Modelo</label>
                     <div class="select-wrapper">
-                      <select id="select-modelo-elevenlabs" class="form-select"></select>
+                      <select id="select-modelo-genaipro" class="form-select"></select>
                       <span class="select-arrow">▼</span>
                     </div>
                   </div>
@@ -735,21 +735,21 @@
               </label>
 
               <div class="voice-provider-toggle">
-                <button type="button" id="btn-voz-provedor-elevenlabs-insp" class="voice-provider-btn" data-provedor="elevenlabs">
-                  ElevenLabs
+                <button type="button" id="btn-voz-provedor-genaipro-insp" class="voice-provider-btn" data-provedor="genaipro">
+                  GenAIPro
                 </button>
                 <button type="button" id="btn-voz-provedor-edge-insp" class="voice-provider-btn" data-provedor="edge-tts">
                   Edge-TTS
                 </button>
               </div>
 
-              <!-- Painel ElevenLabs -->
-              <div id="painel-voz-elevenlabs-insp" style="display: none;">
-                <div id="voice-card-grid-insp" class="voice-card-grid" style="margin-top: 8px;"></div>
+              <!-- Painel GenAIPro -->
+              <div id="painel-voz-genaipro-insp" style="display: none;">
+                <div id="voice-card-grid-insp" class="voice-card-grid voice-card-grid-estreita"></div>
 
                 <div style="margin-top: 8px;">
-                  <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">Modelo (custo)</span>
-                  <select id="select-modelo-elevenlabs-insp" class="form-control"></select>
+                  <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px;">Modelo</span>
+                  <select id="select-modelo-genaipro-insp" class="form-control"></select>
                 </div>
 
                 <details class="voice-advanced-toggle" style="margin-top: 8px;">
