@@ -250,6 +250,7 @@ const API = {
       efeito_url: fixUrl(c.efeito_url),
       thumb_url: fixUrl(c.thumb_url),
       previa_url: fixUrl(c.previa_url),
+      previa_video_url: fixUrl(c.previa_video_url),
     }));
 
     return {

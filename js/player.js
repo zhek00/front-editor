@@ -224,12 +224,15 @@ class StudioPlayer {
     }
   }
 
-  // Endereço que o player mostra: vídeo toca o original; foto usa a prévia de 1280px que a fábrica gera
-  // (o original chega a 20 MB e, pelo túnel, travava o player).
+  // Endereço que o player mostra: nunca o original pesado. Foto usa a prévia de 1280px (o original chega a
+  // 20 MB) e vídeo usa a prévia de 480p só com o trecho da cena (o original de banco é 1080p e chega a 111 MB):
+  // pelo túnel do Cloudflare o player esperava o download e travava.
   urlParaTela(cena) {
     const original = cena.url_midia || cena.img_ia_url || (cena.midia ? cena.midia_url : null);
     if (!original) return null;
-    if (/\.(mp4|mov|webm|m4v)(\?|$)/i.test(original)) return original;
+    if (/\.(mp4|mov|webm|m4v)(\?|$)/i.test(original)) {
+      return cena.previa_video_url ? API.resolverMidia(cena.previa_video_url) : original;
+    }
     return cena.previa_url || original;
   }
 
@@ -382,10 +385,11 @@ class StudioPlayer {
       }
     }
 
-    // Pré-carregamento proativo do próximo take 0.5s antes do corte para corte instantâneo sem preto
+    // Pré-carregamento do próximo take antes do corte. 0,6 s não dava tempo de o vídeo chegar pelo túnel;
+    // com a prévia leve, 2,5 s bastam para ele estar pronto no corte, sem tela parada
     if (cena && this.isPlaying) {
       const tempoRestante = cena.fim - t;
-      if (tempoRestante > 0 && tempoRestante <= 0.6) {
+      if (tempoRestante > 0 && tempoRestante <= 2.5) {
         this.prepararProximaCena(cena.n);
       }
     }
@@ -430,6 +434,12 @@ class StudioPlayer {
       this.currentVisibleEl = incomingVideo;
 
       incomingVideo.muted = true;
+      // enquanto o vídeo não chega, a capa dele (um quadro do próprio vídeo) fica no lugar da tela preta
+      const capa = cena.previa_url ? API.resolverMidia(cena.previa_url) : '';
+      if (incomingVideo.getAttribute('poster') !== capa) {
+        if (capa) incomingVideo.setAttribute('poster', capa);
+        else incomingVideo.removeAttribute('poster');
+      }
       if (incomingVideo.src !== mediaUrl) {
         incomingVideo.src = mediaUrl;
       }
@@ -477,8 +487,10 @@ class StudioPlayer {
         };
         incomingVideo.addEventListener('loadeddata', onReady, { once: true });
         incomingVideo.addEventListener('canplay', onReady, { once: true });
-        // Fallback rápido garantindo que não trave
-        setTimeout(activateIncomingVideo, 80);
+        // a cena anterior continua na tela enquanto o primeiro quadro chega. Antes trocava em 80 ms e, pelo
+        // túnel, o vídeo ainda não tinha chegado: ficava a tela preta. Passado 1,5 s troca assim mesmo, e a
+        // capa do vídeo aparece até ele tocar
+        setTimeout(activateIncomingVideo, 1500);
       }
     } else if (mediaUrl) {
       if (this.emptyEl) this.emptyEl.style.display = 'none';
