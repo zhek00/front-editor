@@ -511,6 +511,32 @@ button, input, select, textarea {
   margin-top: 3px;
 }
 
+.mini-badge.revisao {
+  border-color: rgba(232, 163, 61, 0.55);
+  color: #e8a33d;
+}
+
+.mini-badge.revisao.grave {
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #f87171;
+}
+
+.mini-badge.animacao {
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #93c5fd;
+}
+
+#revisao-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+#revisao-lista .grave { color: #f87171; }
+
 .mini-badge {
   font-size: 9px;
   padding: 1px 6px;

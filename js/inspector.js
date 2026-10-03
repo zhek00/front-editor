@@ -28,6 +28,13 @@ class StudioInspector {
     this.antigasSection = document.getElementById('section-antigas');
     this.btnRefazerIA = document.getElementById('btn-refazer-ia');
     this.btnRefazerBusca = document.getElementById('btn-refazer-busca');
+    this.revisaoGroup = document.getElementById('group-revisao');
+    this.revisaoLista = document.getElementById('revisao-lista');
+    this.animacaoGroup = document.getElementById('group-animacao');
+    this.animacaoStatus = document.getElementById('animacao-status');
+    this.animacaoExplica = document.getElementById('animacao-explica');
+    this.btnAnimacaoGerar = document.getElementById('btn-animacao-gerar');
+    this.btnAnimacaoRemover = document.getElementById('btn-animacao-remover');
     this.btnImgProvedorGoogle = document.getElementById('btn-img-provedor-google-insp');
     this.btnImgProvedorKie = document.getElementById('btn-img-provedor-kie-insp');
 
@@ -152,6 +159,20 @@ class StudioInspector {
       this.btnRefazerBusca.addEventListener('click', () => {
         if (!this.currentScene || !this.project) return;
         window.App.refazerCenaBusca(this.currentScene);
+      });
+    }
+
+    // Animação da cena: gerar, refazer ou voltar para a foto
+    if (this.btnAnimacaoGerar) {
+      this.btnAnimacaoGerar.addEventListener('click', () => {
+        if (!this.currentScene || !this.project) return;
+        window.App.animarCena(this.currentScene, 'gerar');
+      });
+    }
+    if (this.btnAnimacaoRemover) {
+      this.btnAnimacaoRemover.addEventListener('click', () => {
+        if (!this.currentScene || !this.project) return;
+        window.App.animarCena(this.currentScene, 'remover');
       });
     }
 
@@ -315,6 +336,8 @@ class StudioInspector {
 
     // 1. Aba Cena (Visual)
     this.updateTypeRadioUI(cena.tipo);
+    this.updateAnimacaoUI(cena);
+    this.updateRevisaoUI(cena);
     if (this.promptField) this.promptField.value = cena.prompt || '';
     if (this.buscaField) this.buscaField.value = cena.busca || '';
 
@@ -337,6 +360,46 @@ class StudioInspector {
     cards.forEach(c => {
       c.classList.toggle('selected', parseInt(c.dataset.cena) === cena.n);
     });
+  }
+
+  /** O que a revisão do vídeo pronto apontou nesta cena (some quando não há nada). */
+  updateRevisaoUI(cena) {
+    if (!this.revisaoGroup || !this.revisaoLista) return;
+    const problemas = (cena && Array.isArray(cena.revisao)) ? cena.revisao : [];
+    this.revisaoGroup.style.display = problemas.length ? 'flex' : 'none';
+    this.revisaoLista.innerHTML = '';
+    const nomes = {
+      tela_preta: 'Tela preta', nao_combina: 'Não combina com a fala', texto_cortado: 'Texto cortado',
+      texto_sobreposto: 'Texto por cima da legenda', texto_errado: 'Texto com erro', repetida: 'Imagem repetida',
+      marca_dagua: "Marca-d'água", baixa_qualidade: 'Imagem de baixa qualidade', outro: 'Outro problema',
+    };
+    problemas.forEach(p => {
+      const linha = document.createElement('div');
+      if (p.gravidade === 'alta') linha.className = 'grave';
+      linha.textContent = `${nomes[p.tipo] || p.tipo}: ${p.descricao}`;
+      this.revisaoLista.appendChild(linha);
+    });
+  }
+
+  /** Cartão de animação: só aparece em cena de diagrama, texto na tela, linha do tempo ou mapa. */
+  updateAnimacaoUI(cena) {
+    if (!this.animacaoGroup) return;
+    const situacao = (cena && cena.animacao_situacao) || '';
+    this.animacaoGroup.style.display = situacao ? 'flex' : 'none';
+    if (!situacao) return;
+    const tipos = { diagrama: 'diagrama', texto_tela: 'texto na tela', linha_do_tempo: 'linha do tempo', mapa: 'mapa' };
+    const tipo = tipos[cena.visual] || 'animação';
+    const textos = {
+      pronta: ['EM USO', `Esta cena (${tipo}) mostra uma animação no tempo da fala, por cima da imagem.`, 'Refazer animação', true],
+      desatualizada: ['DESATUALIZADA', 'A cena mudou depois da animação: ela usa a foto até você refazer.', 'Refazer animação', true],
+      desligada: ['DESLIGADA', `Você escolheu a foto nesta cena (${tipo}).`, 'Gerar animação', false],
+      possivel: ['DISPONÍVEL', `Esta cena é de ${tipo} e pode virar uma animação no tempo da fala, sem custo.`, 'Gerar animação', false],
+    };
+    const [status, explica, botao, podeRemover] = textos[situacao] || textos.possivel;
+    if (this.animacaoStatus) this.animacaoStatus.textContent = status;
+    if (this.animacaoExplica) this.animacaoExplica.textContent = explica;
+    if (this.btnAnimacaoGerar) this.btnAnimacaoGerar.textContent = botao;
+    if (this.btnAnimacaoRemover) this.btnAnimacaoRemover.style.display = podeRemover ? 'inline-flex' : 'none';
   }
 
   updateTypeRadioUI(tipo) {

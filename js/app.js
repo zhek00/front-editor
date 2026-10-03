@@ -23,6 +23,7 @@ class StudioApp {
     this.btnSave = document.getElementById('btn-save');
     this.btnRender = document.getElementById('btn-render');
     this.btnVerFinal = document.getElementById('btn-ver-final');
+    this.btnVerFinalVertical = document.getElementById('btn-ver-final-vertical');
     this.btnReload = document.getElementById('btn-reload');
     this.btnLimparMidia = document.getElementById('btn-limpar-midia');
     this.btnContinuar = document.getElementById('btn-continuar');
@@ -301,6 +302,12 @@ class StudioApp {
     // Botão Ver Vídeo Final
     if (this.btnVerFinal) {
       this.btnVerFinal.addEventListener('click', () => this.openFinalVideoModal());
+    }
+    if (this.btnVerFinalVertical) {
+      this.btnVerFinalVertical.addEventListener('click', () => {
+        const d = this.currentProjectData || {};
+        if (d.final_vertical_url) this.openFinalVideoModal({ video_url: d.final_vertical_url, vertical: true });
+      });
     }
 
     // Ações do Modal Final
@@ -725,7 +732,8 @@ class StudioApp {
       }
 
       const valorVoz = this.voicePicker.getValue();
-      const vozGenaipro = valorVoz.provedor === 'genaipro' ? valorVoz : null;
+      // GenAIPro ou Fish Audio (a voz grátis, no lugar do Edge-TTS): os dois vão com voice_id e nome
+      const vozGenaipro = (valorVoz.provedor === 'genaipro' || valorVoz.provedor === 'fish') ? valorVoz : null;
       const resp = await API.criarProjeto({ nome, roteiro, perfil, voz, vozGenaipro, imagensProvedor: this.imgProvedor });
       const tarefaId = resp.tarefa_id;
 
@@ -843,6 +851,9 @@ class StudioApp {
 
       if (this.btnVerFinal) {
         this.btnVerFinal.style.display = data.tem_final ? 'inline-flex' : 'none';
+      }
+      if (this.btnVerFinalVertical) {
+        this.btnVerFinalVertical.style.display = data.tem_final_vertical ? 'inline-flex' : 'none';
       }
 
       // Alimentar subsistemas
@@ -1038,21 +1049,25 @@ class StudioApp {
     if (this.custosNarracao) {
       this.custosNarracao.innerHTML = '';
       const n = dados.narracao || {};
-      if (n.caracteres) {
+      if (n.caracteres || n.creditos) {
+        // a GenAIPro cobra em créditos, e não é 1 crédito por caractere: o backend mede pelo saldo
+        const creditos = n.creditos !== undefined ? n.creditos : n.caracteres;
         this.custosNarracao.appendChild(this.linhaCusto(
-          numero(n.caracteres) + ' caracteres narrados, cobrados pela ' + n.origem_do_preco,
-          this.dinheiro(n.preco_por_mil) + ' / mil'));
+          numero(n.caracteres) + ' caracteres narrados = ' + numero(creditos) + ' créditos, cobrados pelo ' +
+          n.origem_do_preco,
+          n.preco_por_credito ? 'US$ ' + Number(n.preco_por_credito).toFixed(6).replace('.', ',') + ' / crédito'
+            : this.dinheiro(n.preco_por_mil) + ' / mil'));
         if (n.incluido_no_mes) {
           this.custosNarracao.appendChild(this.linhaCusto(
-            'Plano ' + n.plano + ': ' + this.dinheiro(n.preco_mensal) + ' por mês, ' +
-            numero(n.incluido_no_mes) + ' caracteres inclusos',
-            n.fatia_da_franquia + '% usado'));
+            'Plano ' + n.plano + ': ' + this.dinheiro(n.preco_mensal) + ', ' +
+            numero(n.incluido_no_mes) + ' créditos',
+            String(n.fatia_da_franquia).replace('.', ',') + '% usado'));
           this.custosNarracao.appendChild(this.linhaCusto(
-            'A franquia do mês dá para cerca de ' + n.videos_por_mes + ' vídeos deste tamanho'));
+            'O pacote dá para cerca de ' + numero(n.videos_por_mes) + ' vídeos deste tamanho'));
         }
       } else {
         this.custosNarracao.appendChild(this.linhaCusto(
-          'Este vídeo usou a voz gratuita (Edge TTS), sem custo de narração.'));
+          'Este vídeo usou uma voz gratuita (Fish Audio ou Edge TTS), sem custo de narração.'));
       }
     }
 
@@ -1231,7 +1246,25 @@ class StudioApp {
         badges.appendChild(sfxBadge);
       }
 
-      if (c.texto_tela && c.texto_tela.tipo !== 'nenhum') {
+      // a revisão do vídeo pronto apontou algo nesta cena
+      const problemas = Array.isArray(c.revisao) ? c.revisao : [];
+      if (problemas.length) {
+        const grave = problemas.some(p => p.gravidade === 'alta');
+        const revBadge = document.createElement('span');
+        revBadge.className = 'mini-badge revisao' + (grave ? ' grave' : '');
+        revBadge.textContent = grave ? '⚠ revisar' : '⚠ atenção';
+        revBadge.title = problemas.map(p => p.descricao).join(' | ');
+        badges.appendChild(revBadge);
+      }
+
+      if (c.animada) {
+        const animBadge = document.createElement('span');
+        animBadge.className = 'mini-badge animacao';
+        animBadge.textContent = 'animação';
+        badges.appendChild(animBadge);
+      }
+
+      if (c.texto_tela && c.texto_tela.tipo !== 'nenhum' && !c.animada) {
         const txtBadge = document.createElement('span');
         txtBadge.className = 'mini-badge text';
         txtBadge.textContent = c.texto_tela.tipo;
@@ -1329,6 +1362,51 @@ class StudioApp {
     }
   }
 
+  /** Depois do render a fábrica revisa o vídeo pronto em segundo plano: quando termina, as cenas com problema
+   *  ganham o aviso na lista, sem a pessoa precisar recarregar. */
+  acompanharRevisaoVideo(nome) {
+    clearInterval(this._revisaoPolling);
+    let voltas = 0;
+    this._revisaoPolling = setInterval(async () => {
+      voltas += 1;
+      if (voltas > 90 || this.currentProjectName !== nome) { clearInterval(this._revisaoPolling); return; }
+      try {
+        const r = await API.getRevisaoVideo(nome);
+        if (r && !r.rodando && r.revisadas) {
+          clearInterval(this._revisaoPolling);
+          await this.atualizarSoAsCenas();
+          const graves = (r.graves || []).length;
+          const total = Object.keys(r.cenas || {}).length;
+          this.notify(total ? `Revisão do vídeo: ${total} cena(s) para olhar${graves ? `, ${graves} grave(s)` : ''}. Veja o aviso ⚠ na lista.`
+                            : 'Revisão do vídeo: nenhum problema encontrado.', total ? 'info' : 'success');
+        }
+      } catch (_) { /* tenta de novo na próxima volta */ }
+    }, 10000);
+  }
+
+  /** Gera (ou refaz) a animação da cena, ou faz ela voltar para a foto. Gratuito: roda no PC da fábrica. */
+  async animarCena(cena, acao) {
+    if (this.hasUnsavedChanges) await this.saveChanges();
+    const gerar = acao !== 'remover';
+    this.openTerminal(gerar ? `Animando a Cena #${cena.n} no tempo da fala (leva cerca de 1 minuto)...`
+                            : `Cena #${cena.n} voltando para a foto...`);
+    if (window.Player && typeof window.Player.soltarVideos === 'function') window.Player.soltarVideos();
+    this.statusDot.className = 'status-dot running';
+    try {
+      // "Refazer" numa animação em uso pede uma nova ao modelo; nas outras situações aproveita o que der
+      const forcar = gerar && cena.animacao_situacao === 'pronta';
+      await API.animarCena(this.currentProjectName, cena.n, { acao: gerar ? 'gerar' : 'remover', forcar });
+      this.statusDot.className = 'status-dot finished';
+      this.appendLog(gerar ? `\nAnimação da Cena #${cena.n} pronta.\n` : `\nCena #${cena.n} usando a foto.\n`);
+      this.notify(gerar ? `Animação da cena #${cena.n} pronta!` : `Cena #${cena.n} voltou para a foto.`, 'success');
+      await this.atualizarSoAsCenas();
+    } catch (err) {
+      this.statusDot.className = 'status-dot failed';
+      this.appendLog(`[ERRO]: ${err.message}`);
+      this.notify(`Animação: ${err.message}`, 'error');
+    }
+  }
+
   async regerarAudio(novoRoteiro, velocidade, voz) {
     this.openTerminal(`Regerando áudio com cache inteligente...`);
     this.statusDot.className = 'status-dot running';
@@ -1342,7 +1420,18 @@ class StudioApp {
       });
       this.statusDot.className = 'status-dot finished';
       this.appendLog(`\nÁudio regerado com sucesso! Nova duração total: ${resp.duracao.toFixed(2)}s\nTempos das cenas sincronizados automaticamente.\n`);
-      this.notify('Áudio e cortes de cena sincronizados com sucesso!', 'success');
+      const p = resp.preenchendo;
+      if (p) {
+        // a voz nova muda o corte: a fábrica busca, confere e completa as cenas sozinha (Em produção no topo)
+        const partes = [];
+        if (p.sem_imagem && p.sem_imagem.length) partes.push(`${p.sem_imagem.length} sem imagem`);
+        if (p.outra_fala && p.outra_fala.length) partes.push(`${p.outra_fala.length} com outra fala`);
+        if (p.repetidas && p.repetidas.length) partes.push(`${p.repetidas.length} com imagem repetida`);
+        this.appendLog(`A narração mudou o corte das cenas (${partes.join(', ')}). A fábrica está buscando, conferindo e completando essas cenas sozinha; o botão de renderizar libera quando terminar.\n`);
+        this.notify('Narração trocada. A fábrica está completando e conferindo as cenas que mudaram (Em produção no topo).', 'info');
+      } else {
+        this.notify('Áudio e cortes de cena sincronizados com sucesso!', 'success');
+      }
       await this.reloadProject();
     } catch (err) {
       this.statusDot.className = 'status-dot failed';
@@ -1688,6 +1777,8 @@ Continuar?`;
     const optLeg = document.getElementById('render-opt-legenda');
     const optMus = document.getElementById('render-opt-musica');
     const optCam = document.getElementById('render-opt-camera');
+    const optFormato = document.getElementById('render-opt-formato');
+    const vertical = !!(optFormato && optFormato.value === 'em_pe');
 
     const opcoes = {
       fps: optFps ? parseInt(optFps.value, 10) : 30,
@@ -1708,7 +1799,9 @@ Continuar?`;
       this.modalRenderProgress.classList.add('open');
       if (this.renderProgressPct) this.renderProgressPct.textContent = '0%';
       if (this.renderProgressFill) this.renderProgressFill.style.width = '0%';
-      if (this.renderProgressStage) this.renderProgressStage.textContent = 'Iniciando a montagem...';
+      if (this.renderProgressStage) {
+        this.renderProgressStage.textContent = vertical ? 'Iniciando a versão em pé (9:16)...' : 'Iniciando a montagem...';
+      }
       if (this.renderStatusBadge) {
         this.renderStatusBadge.textContent = 'Renderizando';
         this.renderStatusBadge.className = 'badge badge-warning';
@@ -1722,7 +1815,8 @@ Continuar?`;
       const resp = await API.renderVideo(this.currentProjectName, {
         opcoes: opcoes,
         cenas_confirmadas: cenasConfirmadas,
-        sem_avatar: true
+        sem_avatar: true,
+        vertical: vertical
       });
 
       const tarefaId = resp.tarefa_id || resp.task_id;
@@ -1779,9 +1873,11 @@ Continuar?`;
 
               this.notify('Montagem concluída! Abrindo vídeo final...', 'success');
               if (this.currentProjectName === nomeDoProjeto) await this.reloadProject();
+              // a revisão do modelo olha o vídeo deitado; a versão em pé tem as mesmas cenas
+              if (!vertical) this.acompanharRevisaoVideo(nomeDoProjeto);
 
               // Abre o player final de alta qualidade exibindo final.mp4
-              this.openFinalVideoModal(st);
+              this.openFinalVideoModal({ ...st, vertical: vertical });
             }, 600);
 
           } else if (st.status === 'erro') {
@@ -1847,7 +1943,8 @@ Continuar?`;
     // Botão de Download Direto
     if (this.btnDownloadFinal) {
       this.btnDownloadFinal.href = API.baixar(finalUrl);
-      this.btnDownloadFinal.setAttribute('download', `${this.currentProjectName}_final.mp4`);
+      const emPe = !!(statusData && statusData.vertical);
+      this.btnDownloadFinal.setAttribute('download', `${this.currentProjectName}_${emPe ? 'vertical' : 'final'}.mp4`);
     }
   }
 

@@ -1,5 +1,5 @@
 /**
- * TipLabs - Seletor de Voz (GenAIPro / Edge-TTS)
+ * TipLabs - Seletor de Voz (GenAIPro / Fish Audio)
  * Componente reutilizável: usado na tela "Novo Projeto" e na aba Áudio do Inspector.
  * Cada instância controla seu próprio conjunto de elementos (ids passados no construtor).
  *
@@ -17,10 +17,12 @@ class VoicePicker {
   static _audio = null;
   static _tocando = null;
 
-  static async catalog(idioma = 'pt', genero = '', busca = '') {
-    const chave = `${idioma}|${genero}|${busca.toLowerCase()}`;
+  static async catalog(idioma = 'pt', genero = '', busca = '', provedor = 'genaipro') {
+    const chave = `${provedor}|${idioma}|${genero}|${busca.toLowerCase()}`;
     if (!VoicePicker._catalogPromises[chave]) {
-      VoicePicker._catalogPromises[chave] = API.getVozesGenaipro({ idioma, genero, busca }).then(res => {
+      // a voz grátis é a da Fish Audio (no lugar do Edge-TTS): mesma grade, outra biblioteca
+      const buscar = provedor === 'fish' ? API.getVozesFish.bind(API) : API.getVozesGenaipro.bind(API);
+      VoicePicker._catalogPromises[chave] = buscar({ idioma, genero, busca }).then(res => {
         // erro não fica em cache: a próxima tentativa busca de novo
         if (res.erro) delete VoicePicker._catalogPromises[chave];
         return res;
@@ -55,6 +57,7 @@ class VoicePicker {
     this.voiceId = null;
     this.vozNome = '';
     this.vozes = [];
+    this.escolhas = {};  // a voz escolhida em cada provedor, pra trocar de um pro outro sem perder
     this.el = {};
     for (const key of Object.keys(ids)) {
       this.el[key] = ids[key] ? document.getElementById(ids[key]) : null;
@@ -172,8 +175,8 @@ class VoicePicker {
   async _carregar() {
     const pedido = `${this.idioma}|${this.genero}|${this.busca}`;
     this._ultimoPedido = pedido;
-    this._status('Carregando vozes da GenAIPro...');
-    const res = await VoicePicker.catalog(this.idioma, this.genero, this.busca);
+    this._status(this.provedor === 'fish' ? 'Carregando vozes da Fish Audio...' : 'Carregando vozes da GenAIPro...');
+    const res = await VoicePicker.catalog(this.idioma, this.genero, this.busca, this.provedor);
     if (this._ultimoPedido !== pedido) return;  // chegou resposta de um filtro que já mudou
     this.vozes = res.vozes || [];
     this.modelos = res.modelos || this.modelos;
@@ -293,7 +296,7 @@ class VoicePicker {
       this.el.velocidade.title = v3 ? 'O modelo v3 ignora a velocidade' : '';
     }
     if (this.el.custo) {
-      const preco = this.precoPorMil ? ` (US$ ${Number(this.precoPorMil).toFixed(3).replace('.', ',')} por mil)` : '';
+      const preco = this.precoPorMil ? ` (US$ ${Number(this.precoPorMil).toFixed(4).replace('.', ',')} por mil)` : '';
       this.el.custo.textContent = `Todos os modelos gastam 1 crédito por caractere${preco}.`;
     }
   }
@@ -303,7 +306,7 @@ class VoicePicker {
       this.el.btnGenaipro.addEventListener('click', () => this.setProvedor('genaipro'));
     }
     if (this.el.btnEdge) {
-      this.el.btnEdge.addEventListener('click', () => this.setProvedor('edge-tts'));
+      this.el.btnEdge.addEventListener('click', () => this.setProvedor('fish'));
     }
     const sliders = [
       ['estabilidade', 'valorEstabilidade', (v) => v.toFixed(2)],
@@ -323,14 +326,45 @@ class VoicePicker {
   }
 
   setProvedor(provedor) {
-    // "elevenlabs" é o nome antigo: projetos de antes da troca voltam como GenAIPro
-    provedor = provedor === 'edge-tts' ? 'edge-tts' : 'genaipro';
+    // "elevenlabs" é o nome antigo da GenAIPro. A voz grátis agora é a Fish Audio: projeto antigo com Edge-TTS
+    // aparece com a Fish, e regerar o áudio troca a voz
+    provedor = (provedor === 'fish' || provedor === 'edge-tts') ? 'fish' : 'genaipro';
+    const anterior = this.provedor;
+    if (anterior && anterior !== provedor) {
+      this.escolhas[anterior] = { voiceId: this.voiceId, vozNome: this.vozNome };
+      const guardada = this.escolhas[provedor] || {};
+      this.voiceId = guardada.voiceId || null;
+      this.vozNome = guardada.vozNome || '';
+    }
     this.provedor = provedor;
-    if (this.el.btnGenaipro) this.el.btnGenaipro.classList.toggle('active', provedor === 'genaipro');
-    if (this.el.btnEdge) this.el.btnEdge.classList.toggle('active', provedor === 'edge-tts');
-    if (this.el.painelGenaipro) this.el.painelGenaipro.style.display = provedor === 'genaipro' ? '' : 'none';
-    if (this.el.painelEdge) this.el.painelEdge.style.display = provedor === 'edge-tts' ? '' : 'none';
-    if (provedor !== 'genaipro' && VoicePicker._audio) VoicePicker._audio.pause();
+    const fishAtivo = provedor === 'fish';
+    if (this.el.btnGenaipro) this.el.btnGenaipro.classList.toggle('active', !fishAtivo);
+    if (this.el.btnEdge) this.el.btnEdge.classList.toggle('active', fishAtivo);
+    // a mesma grade serve aos dois: o painel antigo do Edge não aparece mais
+    if (this.el.painelGenaipro) this.el.painelGenaipro.style.display = '';
+    if (this.el.painelEdge) this.el.painelEdge.style.display = 'none';
+    // modelo, estabilidade, similaridade e estilo são da GenAIPro; na Fish fica só a velocidade
+    const soGenaipro = [
+      this.el.modelo && (this.el.modelo.closest('.form-row-grid') || this.el.modelo.closest('.form-group')),
+      this.el.custo,
+      this.el.estabilidade && this.el.estabilidade.closest('.voice-slider-row'),
+      this.el.similaridade && this.el.similaridade.closest('.voice-slider-row'),
+      this.el.estilo && this.el.estilo.closest('.voice-slider-row'),
+    ];
+    soGenaipro.forEach(el => { if (el) el.style.display = fishAtivo ? 'none' : ''; });
+    if (this.el.creditos) {
+      if (fishAtivo) {
+        this.el.creditos.hidden = false;
+        this.el.creditos.classList.remove('voice-creditos-alerta');
+        this.el.creditos.textContent = 'Fish Audio: voz grátis, pelo OpenRouter. Escolha uma voz da biblioteca e ouça a prévia.';
+      } else if (this._iniciado) {
+        this._mostrarCreditos();
+      }
+    }
+    if (anterior !== provedor && VoicePicker._audio) VoicePicker._audio.pause();
+    if (anterior && anterior !== provedor && this._iniciado) {
+      this._filtrar({}, !this.voiceId);
+    }
   }
 
   /** Aplica um objeto de voz já existente (vindo do projeto) nos controles.
@@ -373,11 +407,13 @@ class VoicePicker {
 
   /** Lê os controles e devolve o payload de ajuste de voz pra mandar pro backend. */
   getValue() {
-    if (this.provedor === 'edge-tts') {
+    if (this.provedor === 'fish') {
       return {
-        provedor: 'edge-tts',
-        voz_edge: this.el.vozEdge ? this.el.vozEdge.value : undefined,
-        velocidade_edge: this.el.velocidadeEdge ? this.el.velocidadeEdge.value : undefined,
+        provedor: 'fish',
+        idioma: this.idioma,
+        voice_id: this.voiceId || undefined,
+        nome: this.vozNome || undefined,
+        velocidade: this.el.velocidade ? parseFloat(this.el.velocidade.value) : undefined,
       };
     }
     return {

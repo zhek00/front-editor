@@ -83,6 +83,9 @@
         <button id="btn-ver-final" class="btn btn-secondary btn-sm" style="display: none;">
           Ver Vídeo Final
         </button>
+        <button id="btn-ver-final-vertical" class="btn btn-secondary btn-sm" style="display: none;" title="A versão em pé (9:16) para Reels e Shorts">
+          Ver Versão em Pé
+        </button>
         <button id="btn-continuar" class="btn btn-secondary btn-sm" style="display: none;" title="Termina o que ficou pela metade: busca o material de acervo que falta e gera as imagens de IA que faltam. Mostra o custo antes e pede confirmação. O que já está pronto não é refeito.">
           Continuar carregamento
         </button>
@@ -277,7 +280,7 @@
             <div class="form-group">
               <div class="form-label-row">
                 <label class="form-label">Voz do Narrador</label>
-                <span class="form-hint">GenAIPro soa mais real; Edge-TTS é grátis, bom só pra teste</span>
+                <span class="form-hint">GenAIPro soa mais real; Fish Audio é grátis</span>
               </div>
 
               <div class="voice-provider-toggle">
@@ -285,9 +288,9 @@
                   GenAIPro
                   <span class="voice-provider-tag">recomendado, vozes da ElevenLabs por créditos</span>
                 </button>
-                <button type="button" id="btn-voz-provedor-edge" class="voice-provider-btn" data-provedor="edge-tts">
-                  Edge-TTS
-                  <span class="voice-provider-tag">grátis, ótimo pra testar sem gastar</span>
+                <button type="button" id="btn-voz-provedor-edge" class="voice-provider-btn" data-provedor="fish">
+                  Fish Audio
+                  <span class="voice-provider-tag">grátis, vozes da biblioteca da Fish pelo OpenRouter</span>
                 </button>
               </div>
 
@@ -642,6 +645,28 @@
               </div>
             </div>
 
+            <!-- O que a revisão do vídeo pronto apontou nesta cena -->
+            <div id="group-revisao" class="form-card" style="display: none;">
+              <label class="form-label">
+                <span>Revisão do vídeo pronto</span>
+                <span style="font-size: 9px; color: var(--text-muted)">o modelo olhou o vídeo renderizado</span>
+              </label>
+              <div id="revisao-lista"></div>
+            </div>
+
+            <!-- Animação (cenas de diagrama, texto na tela, linha do tempo e mapa) -->
+            <div id="group-animacao" class="form-card" style="display: none;">
+              <label class="form-label">
+                <span>Animação</span>
+                <span id="animacao-status" style="font-size: 9px; color: var(--text-muted)"></span>
+              </label>
+              <span id="animacao-explica" class="dropzone-sub" style="display: block; margin-bottom: 8px;"></span>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button id="btn-animacao-gerar" class="btn btn-primary btn-sm">Gerar animação</button>
+                <button id="btn-animacao-remover" class="btn btn-secondary btn-sm">Voltar para a foto</button>
+              </div>
+            </div>
+
             <!-- Campo de Prompt (para IA) -->
             <div id="group-prompt" class="form-card">
               <label class="form-label">
@@ -738,8 +763,8 @@
                 <button type="button" id="btn-voz-provedor-genaipro-insp" class="voice-provider-btn" data-provedor="genaipro">
                   GenAIPro
                 </button>
-                <button type="button" id="btn-voz-provedor-edge-insp" class="voice-provider-btn" data-provedor="edge-tts">
-                  Edge-TTS
+                <button type="button" id="btn-voz-provedor-edge-insp" class="voice-provider-btn" data-provedor="fish">
+                  Fish Audio (grátis)
                 </button>
               </div>
 
@@ -876,6 +901,17 @@
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 18px;">
           <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
             Todas as cenas foram revisadas. Vamos sincronizar os cortes, aplicar transições suaves, queimar a legenda e mixar a trilha sonora.
+          </div>
+
+          <div class="form-card">
+            <label class="form-label">Formato</label>
+            <select id="render-opt-formato" class="form-control">
+              <option value="deitado" selected>Deitado 16:9 (YouTube)</option>
+              <option value="em_pe">Em pé 9:16 (Reels e Shorts)</option>
+            </select>
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+              A versão em pé é um arquivo à parte: o vídeo deitado continua como está. Nela as animações voltam a ser a foto com o texto na tela.
+            </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">

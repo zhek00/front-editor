@@ -264,6 +264,9 @@ const API = {
       // o MP3 leve toca o vídeo inteiro pelo túnel; o WAV original tinha mais de 140 MB num vídeo de 28 min
       narracao_url: fixUrl(projData.url_narracao_leve || projData.url_narracao),
       final_url: fixUrl(projData.url_final),
+      // versão em pé (9:16) para Reels e Shorts, em final_vertical.mp4
+      tem_final_vertical: !!projData.tem_final_vertical,
+      final_vertical_url: fixUrl(projData.url_final_vertical),
       cenas: cenas,
       legendas: projData.legendas || [],
       alinhamento: projData.alinhamento || null,
@@ -274,6 +277,27 @@ const API = {
   },
 
   // 3. Regerar cena com IA ou Acervo
+  /** O que a revisão do vídeo pronto apontou, e se ela ainda está rodando. */
+  async getRevisaoVideo(nome) {
+    const res = await this.req(`/api/projetos/${encodeURIComponent(nome)}/revisao-video`);
+    if (!res.ok) return null;
+    return await res.json();
+  },
+
+  /** Anima a cena (acao "gerar") ou faz ela voltar para a foto (acao "remover"). */
+  async animarCena(nome, n, { acao = 'gerar', forcar = false } = {}) {
+    const res = await this.req(`/api/projetos/${encodeURIComponent(nome)}/cenas/${n}/animacao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acao, forcar })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro desconhecido' }));
+      throw new Error(err.detail || 'Falha na animação da cena');
+    }
+    return await res.json();
+  },
+
   async refazerCena(nome, n, { tipo, prompt, busca, forcar_ia }) {
     const res = await this.req(`/api/projetos/${encodeURIComponent(nome)}/cenas/${n}/refazer`, {
       method: 'POST',
@@ -329,7 +353,7 @@ const API = {
   },
 
   // 7. Disparar renderização do vídeo em segundo plano (Contrato Oficial)
-  async renderVideo(nome, { opcoes, cenas_confirmadas, sem_avatar } = {}) {
+  async renderVideo(nome, { opcoes, cenas_confirmadas, sem_avatar, vertical } = {}) {
     const payload = {
       projeto: nome,
       opcoes: opcoes || {
@@ -341,7 +365,8 @@ const API = {
         movimento_camera: true
       },
       cenas_confirmadas: cenas_confirmadas || [],
-      sem_avatar: sem_avatar !== undefined ? sem_avatar : true
+      sem_avatar: sem_avatar !== undefined ? sem_avatar : true,
+      vertical: !!vertical
     };
 
     const res = await this.req(`/api/projetos/${encodeURIComponent(nome)}/render`, {
@@ -445,7 +470,7 @@ const API = {
       payload.perfil = perfil;
     }
     if (vozGenaipro) {
-      payload.voz_provedor = 'genaipro';
+      payload.voz_provedor = vozGenaipro.provedor === 'fish' ? 'fish' : 'genaipro';
       payload.voz_id = vozGenaipro.voice_id;
       payload.voz_nome = vozGenaipro.nome;
       payload.voz_modelo = vozGenaipro.modelo;
@@ -516,6 +541,19 @@ const API = {
       if (res.ok) return await res.json();
       const err = await res.json().catch(() => ({}));
       return { vozes: [], modelos: [], idiomas: [], erro: err.detail || 'Não deu pra carregar as vozes da GenAIPro.' };
+    } catch (_) {
+      return { vozes: [], modelos: [], idiomas: [], erro: 'Sem conexão com o backend pra carregar as vozes.' };
+    }
+  },
+
+  // 16a. Vozes da biblioteca da Fish Audio: a voz grátis, no lugar do Edge-TTS
+  async getVozesFish({ idioma = 'pt', genero = '', busca = '' } = {}) {
+    const q = new URLSearchParams({ idioma, genero, busca });
+    try {
+      const res = await this.req(`/api/vozes/fish?${q}`);
+      if (res.ok) return await res.json();
+      const err = await res.json().catch(() => ({}));
+      return { vozes: [], modelos: [], idiomas: [], erro: err.detail || 'Não deu pra carregar as vozes da Fish Audio.' };
     } catch (_) {
       return { vozes: [], modelos: [], idiomas: [], erro: 'Sem conexão com o backend pra carregar as vozes.' };
     }

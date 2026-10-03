@@ -668,7 +668,8 @@ class StudioPlayer {
   }
 
   updateOverlays(t, cena) {
-    if (!cena || !cena.texto_tela) {
+    // cena animada já traz o texto dentro da animação: o texto na tela por cima ficaria duplicado
+    if (!cena || !cena.texto_tela || cena.animada) {
       if (this.overlayBadgeEl) this.overlayBadgeEl.classList.remove('active');
       if (this.overlayHighlightEl) this.overlayHighlightEl.classList.remove('active');
       return;
