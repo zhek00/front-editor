@@ -94,6 +94,14 @@ class StudioTimeline {
   }
 
   bindEvents() {
+    const btnExcluirTodas = document.getElementById('btn-motion-excluir-todas');
+    if (btnExcluirTodas) {
+      btnExcluirTodas.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.App && typeof window.App.excluirMotion === 'function') window.App.excluirMotion(null);
+      });
+    }
+
     const btnZoomIn = document.getElementById('btn-zoom-in');
     const btnZoomOut = document.getElementById('btn-zoom-out');
 
@@ -208,6 +216,18 @@ class StudioTimeline {
       texto.className = 'motion-block-texto';
       texto.textContent = m.texto || '';
       block.appendChild(texto);
+
+      const excluir = document.createElement('button');
+      excluir.type = 'button';
+      excluir.className = 'motion-block-excluir';
+      excluir.textContent = '×';
+      excluir.title = 'Excluir esta animação do vídeo';
+      excluir.addEventListener('mousedown', (e) => e.stopPropagation());
+      excluir.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.App && typeof window.App.excluirMotion === 'function') window.App.excluirMotion(m);
+      });
+      block.appendChild(excluir);
 
       block.addEventListener('mousedown', (e) => e.stopPropagation());
       block.addEventListener('click', (e) => {

@@ -286,6 +286,18 @@ const API = {
     return await res.json();
   },
 
+  /** Exclui do vídeo uma animação da faixa Motion (id) ou todas (id "todos"). Vale no próximo render. */
+  async excluirMotion(nome, id) {
+    const res = await this.req(`/api/projetos/${encodeURIComponent(nome)}/motion/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Erro desconhecido' }));
+      throw new Error(err.detail || 'Falha ao excluir a animação');
+    }
+    return await res.json();
+  },
+
   /** Anima a cena (acao "gerar") ou faz ela voltar para a foto (acao "remover"). */
   async animarCena(nome, n, { acao = 'gerar', forcar = false } = {}) {
     const res = await this.req(`/api/projetos/${encodeURIComponent(nome)}/cenas/${n}/animacao`, {

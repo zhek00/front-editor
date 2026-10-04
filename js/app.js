@@ -1384,6 +1384,32 @@ class StudioApp {
     }, 10000);
   }
 
+  /** Exclui uma animação da faixa Motion (ou todas, com m = null). Gratuito; o vídeo pronto muda no próximo render. */
+  async excluirMotion(m) {
+    if (!this.currentProjectName) return;
+    const todas = !m;
+    const quantas = ((this.currentProjectData && this.currentProjectData.motion) || []).length;
+    if (todas && !quantas) {
+      this.notify('Este vídeo não tem animações.', 'info');
+      return;
+    }
+    const texto = todas
+      ? `Excluir as ${quantas} animações deste vídeo? As cenas voltam a mostrar só a imagem.`
+      : `Excluir a animação "${(m.texto || '').slice(0, 60)}"? As cenas por baixo voltam a mostrar só a imagem.`;
+    if (!window.confirm(texto)) return;
+    // solta a prévia que está tocando: no Windows a fábrica não mexe num arquivo aberto pelo navegador
+    if (window.Player && typeof window.Player.soltarMotion === 'function') window.Player.soltarMotion();
+    try {
+      const r = await API.excluirMotion(this.currentProjectName, todas ? 'todos' : m.id);
+      const n = (r.excluidas || []).length;
+      this.notify(`${n === 1 ? 'Animação excluída' : `${n} animações excluídas`}. Renderize de novo para sair do vídeo final.`,
+                  'success');
+      await this.atualizarSoAsCenas();
+    } catch (err) {
+      this.notify(`Animação: ${err.message}`, 'error');
+    }
+  }
+
   /** Gera (ou refaz) a animação da cena, ou faz ela voltar para a foto. Gratuito: roda no PC da fábrica. */
   async animarCena(cena, acao) {
     if (this.hasUnsavedChanges) await this.saveChanges();
