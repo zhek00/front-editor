@@ -883,8 +883,8 @@ class StudioApp {
     const data = await API.getProject(nome);
     if (this.currentProjectName !== nome) return;
     const selecionada = window.Inspector && window.Inspector.currentScene ? window.Inspector.currentScene.n : null;
-    this.currentProjectData = { ...this.currentProjectData, cenas: data.cenas, criacao: data.criacao };
-    if (window.Player && typeof window.Player.atualizarCenas === 'function') window.Player.atualizarCenas(data.cenas);
+    this.currentProjectData = { ...this.currentProjectData, cenas: data.cenas, motion: data.motion, criacao: data.criacao };
+    if (window.Player && typeof window.Player.atualizarCenas === 'function') window.Player.atualizarCenas(data.cenas, data.motion);
     if (window.Timeline && typeof window.Timeline.loadProject === 'function') {
       window.Timeline.loadProject(this.currentProjectData);
       if (selecionada) window.Timeline.selectSceneBlock(selecionada);

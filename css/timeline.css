@@ -3,7 +3,7 @@
    ========================================================================== */
 
 .timeline-section {
-  height: 205px;
+  height: 245px;
   min-height: 120px;
   max-height: 70vh;
   background: var(--bg-surface, #12141a);
@@ -245,6 +245,53 @@
 .scene-block-dur {
   font-size: 9px;
   color: var(--text-muted, #94a3b8);
+  font-family: var(--font-mono, monospace);
+}
+
+/* Faixa Motion: as animações, por cima das cenas, com a duração delas (não a da cena) */
+.timeline-block-motion {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  background: rgba(167, 139, 250, 0.14);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  border-radius: var(--radius-sm, 5px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  overflow: hidden;
+  color: #ddd6fe;
+  cursor: pointer;
+  z-index: 5;
+  transition: all 180ms ease;
+}
+
+.timeline-block-motion:hover {
+  background: rgba(167, 139, 250, 0.24);
+  border-color: rgba(167, 139, 250, 0.65);
+  transform: translateY(-1px);
+}
+
+.timeline-block-motion.tocando {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 1px #a78bfa;
+}
+
+.motion-block-tipo {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.motion-block-texto {
+  font-size: 9px;
+  color: #c4b5fd;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
   font-family: var(--font-mono, monospace);
 }
 

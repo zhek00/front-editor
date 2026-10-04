@@ -82,6 +82,25 @@
   animation: kenBurnsSlow 18s cubic-bezier(0.16, 0.45, 0.28, 1) forwards;
 }
 
+/* Camada de animação: vídeo com fundo transparente por cima das cenas, abaixo dos textos e da legenda */
+.cinema-motion {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 5;
+  background: transparent;
+}
+
+.cinema-motion.active {
+  opacity: 1;
+  visibility: visible;
+}
+
 .cinema-empty {
   position: absolute;
   inset: 0;

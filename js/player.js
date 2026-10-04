@@ -17,6 +17,11 @@ class StudioPlayer {
     this.videoB = document.getElementById('cinema-video-b') || document.getElementById('cinema-video');
     this.videoEl = this.videoA;
     this.emptyEl = document.getElementById('cinema-empty');
+    // camada de animação: um vídeo transparente por cima das cenas, que segue a fala e não corta na troca de cena
+    this.motionEl = document.getElementById('cinema-motion');
+    if (this.motionEl) this.motionEl.muted = true;
+    this.motion = [];
+    this.currentMotion = null;
     this.subtitleEl = document.getElementById('subtitle-text');
     this.sfxFlashEl = document.getElementById('cinema-sfx-flash');
     this.sfxFlashTextEl = document.getElementById('sfx-flash-text');
@@ -135,6 +140,8 @@ class StudioPlayer {
   loadProject(projectData) {
     this.project = projectData;
     this.cenas = projectData.cenas || [];
+    this.motion = projectData.motion || [];
+    this.currentMotion = null;
     this.alinhamento = projectData.alinhamento || null;
     this.legendas = projectData.legendas || [];
     this.duration = projectData.duracao || (this.alinhamento ? this.alinhamento.duracao : 0);
@@ -175,14 +182,30 @@ class StudioPlayer {
       this.videoB.removeAttribute('src');
       this.videoB.load();
     }
+    this.soltarMotion();
+  }
+
+  // Solta a prévia da animação (o Windows não deixa a fábrica trocar um arquivo que o navegador está tocando)
+  soltarMotion() {
+    if (!this.motionEl) return;
+    this.motionEl.pause();
+    this.motionEl.classList.remove('active');
+    this.motionEl.removeAttribute('src');
+    this.motionEl.load();
+    this.currentMotion = null;
   }
 
   // Troca só a lista de cenas (depois de pesquisar ou regerar uma cena), sem recarregar a narração nem voltar
   // para o começo. Antes o editor recarregava o projeto inteiro, e a reprodução quebrava até tudo baixar de novo.
-  atualizarCenas(cenas) {
+  atualizarCenas(cenas, motion) {
     const tocando = this.isPlaying;
     const t = this.currentTime;
     this.cenas = cenas || [];
+    if (motion) {
+      this.motion = motion;
+      if (this.project) this.project.motion = motion;
+      this.currentMotion = null;  // a animação pode ter sido refeita: endereço novo
+    }
     if (this.project) this.project.cenas = this.cenas;
     this.preloadedImages.clear();
     const indice = this.cenas.findIndex(c => t >= c.ini && t < c.fim);
@@ -201,6 +224,7 @@ class StudioPlayer {
       v.removeAttribute('src');
       v.load();
     }
+    this.soltarMotion();
     this.currentScene = null;
   }
 
@@ -303,6 +327,7 @@ class StudioPlayer {
     this.audioElement.playbackRate = rate;
     if (this.videoA) this.videoA.playbackRate = rate;
     if (this.videoB) this.videoB.playbackRate = rate;
+    if (this.motionEl) this.motionEl.playbackRate = rate;
   }
 
   onPlayState(playing) {
@@ -321,6 +346,7 @@ class StudioPlayer {
       this.stop60FpsLoop();
       if (this.videoA) this.videoA.pause();
       if (this.videoB) this.videoB.pause();
+      if (this.motionEl) this.motionEl.pause();
       if (this.currentScene && window.Inspector) {
         window.Inspector.selectScene(this.currentScene, false);
       }
@@ -393,6 +419,9 @@ class StudioPlayer {
         this.prepararProximaCena(cena.n);
       }
     }
+
+    // 1b. Camada de animação por cima das cenas, no tempo dela (não no da cena)
+    this.updateMotion(t);
 
     // 2. Atualizar legenda contínua
     this.updateSubtitles(t, cena);
@@ -667,9 +696,50 @@ class StudioPlayer {
     return linhas.length > 0 ? linhas : [texto];
   }
 
+  // A animação é uma faixa própria: um único vídeo transparente que toca do começo ao fim dela, enquanto as cenas
+  // trocam por baixo. Antes o editor mostrava uma montagem por cena, e a animação reiniciava ou sumia no corte.
+  updateMotion(t) {
+    const el = this.motionEl;
+    if (!el) return;
+    const m = this.motion.find(x => t >= x.ini && t < x.fim) || null;
+    if (window.Timeline && typeof window.Timeline.marcarMotionTocando === 'function') {
+      window.Timeline.marcarMotionTocando(m ? m.id : null);
+    }
+    if (!m || !m.url) {
+      if (this.currentMotion) {
+        el.classList.remove('active');
+        el.pause();
+        this.currentMotion = null;
+      }
+      // a próxima animação começa logo: já vai carregando, escondida
+      const proxima = this.isPlaying ? this.motion.find(x => x.ini > t && x.ini - t <= 2.5) : null;
+      if (proxima && proxima.url && el.dataset.src !== proxima.url) {
+        el.dataset.src = proxima.url;
+        el.src = proxima.url;
+        el.preload = 'auto';
+      }
+      return;
+    }
+    if (m !== this.currentMotion) {
+      this.currentMotion = m;
+      if (el.dataset.src !== m.url) {
+        el.dataset.src = m.url;
+        el.src = m.url;
+      }
+      el.playbackRate = this.playbackRate;
+      el.classList.add('active');
+    }
+    const alvo = t - m.ini;
+    if (Math.abs((el.currentTime || 0) - alvo) > 0.25 || (!this.isPlaying && Math.abs((el.currentTime || 0) - alvo) > 0.04)) {
+      try { el.currentTime = alvo; } catch (e) {}
+    }
+    if (this.isPlaying && el.paused) el.play().catch(() => {});
+    if (!this.isPlaying && !el.paused) el.pause();
+  }
+
   updateOverlays(t, cena) {
-    // cena animada já traz o texto dentro da animação: o texto na tela por cima ficaria duplicado
-    if (!cena || !cena.texto_tela || cena.animada) {
+    // embaixo de uma animação o texto na tela da cena sai: a animação já traz o dela (a mesma regra do render)
+    if (!cena || !cena.texto_tela || cena.animada || this.currentMotion) {
       if (this.overlayBadgeEl) this.overlayBadgeEl.classList.remove('active');
       if (this.overlayHighlightEl) this.overlayHighlightEl.classList.remove('active');
       return;

@@ -268,6 +268,8 @@ const API = {
       tem_final_vertical: !!projData.tem_final_vertical,
       final_vertical_url: fixUrl(projData.url_final_vertical),
       cenas: cenas,
+      // as animações: uma faixa própria por cima das cenas, cada uma com o começo, o fim e a prévia transparente
+      motion: (cenasData.motion || []).map(m => ({ ...m, url: fixUrl(m.url) })),
       legendas: projData.legendas || [],
       alinhamento: projData.alinhamento || null,
       voz: projData.voz || {},

@@ -458,6 +458,8 @@
               <video id="cinema-video-a" class="cinema-layer cinema-video" playsinline loop muted></video>
               <video id="cinema-video-b" class="cinema-layer cinema-video" playsinline loop muted></video>
               <video id="cinema-video" class="cinema-layer cinema-video" style="display:none;" playsinline loop muted></video>
+              <!-- Camada de animação (motion): toca por cima das cenas, no tempo da fala, sem cortar na troca de cena -->
+              <video id="cinema-motion" class="cinema-motion" playsinline muted preload="auto"></video>
               
               <div id="cinema-empty" class="cinema-empty">
                 <span>Carregando estúdio...</span>
@@ -545,6 +547,9 @@
             <!-- Cabeçalhos das Faixas (Coluna Fixa à Esquerda) -->
             <div class="timeline-track-headers">
               <div class="track-header ruler-header">Tempo</div>
+              <div class="track-header motion">
+                <span>Motion</span>
+              </div>
               <div class="track-header video">
                 <span>Cenas</span>
               </div>
@@ -568,6 +573,7 @@
 
                 <!-- Corpo das Faixas -->
                 <div id="tracks-body" class="tracks-body">
+                  <div id="track-motion" class="timeline-track track-motion"></div>
                   <div id="track-video" class="timeline-track track-video"></div>
                   <div id="track-audio" class="timeline-track track-audio"></div>
                   <div id="track-sfx" class="timeline-track track-sfx"></div>

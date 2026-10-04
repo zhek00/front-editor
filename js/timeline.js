@@ -1,6 +1,6 @@
 /**
  * TipLabs - Multi-Track Timeline
- * Renderiza faixas de vídeo, narração, efeitos sonoros (SFX) e música de fundo.
+ * Renderiza faixas de animação (motion), vídeo, narração, efeitos sonoros (SFX) e música de fundo.
  * Permite scrub interativo, zoom e seleção de blocos.
  */
 
@@ -13,6 +13,7 @@ class StudioTimeline {
     this.playheadEl = document.getElementById('timeline-playhead');
     this.playheadHandleEl = document.getElementById('playhead-handle');
 
+    this.trackMotionEl = document.getElementById('track-motion');
     this.trackVideoEl = document.getElementById('track-video');
     this.trackAudioEl = document.getElementById('track-audio');
     this.trackSfxEl = document.getElementById('track-sfx');
@@ -20,6 +21,7 @@ class StudioTimeline {
 
     this.project = null;
     this.cenas = [];
+    this.motion = [];
     this.duration = 0;
     this.pixelsPerSecond = 35; // Nível de zoom inicial
     this.minZoom = 15;
@@ -38,8 +40,9 @@ class StudioTimeline {
 
     // Lembra a altura escolhida da última vez, só neste navegador
     try {
+      // nunca menor que o necessário para as cinco faixas (Motion entrou acima das Cenas)
       const salva = localStorage.getItem('fabrica-studio-altura-timeline');
-      if (salva) secao.style.height = `${parseInt(salva, 10)}px`;
+      if (salva) secao.style.height = `${Math.max(parseInt(salva, 10) || 0, 245)}px`;
     } catch (_) {}
 
     let arrastando = false;
@@ -85,8 +88,8 @@ class StudioTimeline {
 
     // Duplo clique volta pro tamanho padrão
     handle.addEventListener('dblclick', () => {
-      secao.style.height = '205px';
-      try { localStorage.setItem('fabrica-studio-altura-timeline', '205'); } catch (_) {}
+      secao.style.height = '245px';
+      try { localStorage.setItem('fabrica-studio-altura-timeline', '245'); } catch (_) {}
     });
   }
 
@@ -133,6 +136,7 @@ class StudioTimeline {
   loadProject(projectData) {
     this.project = projectData;
     this.cenas = projectData.cenas || [];
+    this.motion = projectData.motion || [];
     this.duration = projectData.duracao || (projectData.alinhamento ? projectData.alinhamento.duracao : 0);
 
     if (this.cenas.length > 0 && this.duration === 0) {
@@ -149,6 +153,7 @@ class StudioTimeline {
     this.canvasWrapper.style.width = `${totalWidth}px`;
 
     this.renderRuler(totalWidth);
+    this.renderMotionTrack();
     this.renderVideoTrack();
     this.renderAudioTrack();
     this.renderSfxTrack();
@@ -175,6 +180,56 @@ class StudioTimeline {
       fragmento.appendChild(mark);
     }
     this.rulerEl.appendChild(fragmento);
+  }
+
+  // Faixa Motion: cada animação com a duração dela (3 a 8 s, pelo que está escrito), passando por cima das cenas
+  renderMotionTrack() {
+    if (!this.trackMotionEl) return;
+    this.trackMotionEl.innerHTML = '';
+    const fragmento = document.createDocumentFragment();
+    const nomes = { frase: 'Frase', numero: 'Número', contraste: 'Contraste', radial: 'Radial', lista: 'Lista',
+                    fluxo: 'Fluxo', linha_do_tempo: 'Linha do tempo', mapa: 'Mapa' };
+
+    this.motion.forEach((m) => {
+      const dur = m.fim - m.ini;
+      const block = document.createElement('div');
+      block.className = 'timeline-block-motion';
+      block.dataset.motion = m.id;
+      block.style.left = `${m.ini * this.pixelsPerSecond}px`;
+      block.style.width = `${Math.max(16, dur * this.pixelsPerSecond)}px`;
+      block.title = `Animação (${nomes[m.modelo] || m.modelo || 'motion'}, ${dur.toFixed(1)}s): ${m.texto || ''}`;
+
+      const tipo = document.createElement('span');
+      tipo.className = 'motion-block-tipo';
+      tipo.textContent = `${nomes[m.modelo] || 'Motion'} ${dur.toFixed(1)}s`;
+      block.appendChild(tipo);
+
+      const texto = document.createElement('span');
+      texto.className = 'motion-block-texto';
+      texto.textContent = m.texto || '';
+      block.appendChild(texto);
+
+      block.addEventListener('mousedown', (e) => e.stopPropagation());
+      block.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // a cena em que a animação começa: o inspetor mostra o cartão de animação dela
+        const cena = this.cenas.find(c => m.ini + 0.05 >= c.ini && m.ini + 0.05 < c.fim);
+        if (cena) this.selectSceneBlock(cena.n);
+        if (window.Player) window.Player.seek(m.ini);
+      });
+
+      fragmento.appendChild(block);
+    });
+
+    this.trackMotionEl.appendChild(fragmento);
+  }
+
+  marcarMotionTocando(id) {
+    if (!this.trackMotionEl || this._motionTocando === id) return;
+    this._motionTocando = id;
+    this.trackMotionEl.querySelectorAll('.timeline-block-motion').forEach(b => {
+      b.classList.toggle('tocando', b.dataset.motion === id);
+    });
   }
 
   renderVideoTrack() {
