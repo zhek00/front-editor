@@ -1275,8 +1275,10 @@ class StudioApp {
       card.appendChild(info);
 
       card.addEventListener('click', () => {
-        window.Player.seek(c.ini);
+        window.Player.seek(c.ini);  // a timeline rola até a agulha (Timeline.updatePlayhead)
         window.Inspector.selectScene(c);
+        // a cena escolhida na lista fica destacada também na faixa Cenas
+        if (window.Timeline && typeof window.Timeline.selectSceneBlock === 'function') window.Timeline.selectSceneBlock(c.n, false);
       });
 
       fragmento.appendChild(card);

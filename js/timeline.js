@@ -388,11 +388,12 @@ class StudioTimeline {
     this.trackMusicEl.appendChild(musicBlock);
   }
 
-  selectSceneBlock(n) {
+  selectSceneBlock(n, abrirNoInspetor = true) {
     const blocks = this.trackVideoEl.querySelectorAll('.timeline-block-scene');
     blocks.forEach(b => {
       b.classList.toggle('selected', parseInt(b.dataset.cena) === n);
     });
+    if (!abrirNoInspetor) return;
 
     const cena = this.cenas.find(c => c.n === n);
     if (cena && window.Inspector) {
@@ -404,6 +405,17 @@ class StudioTimeline {
     const left = currentTime * this.pixelsPerSecond;
     if (this.playheadEl) {
       this.playheadEl.style.transform = `translate3d(${left}px, 0, 0)`;
+    }
+
+    // Parado (clique numa cena da lista, nos botões de cena, na régua): a agulha nunca fica fora da tela. Antes a
+    // timeline só acompanhava tocando, e escolher uma cena na lista deixava a agulha escondida
+    if (this.container && !(window.Player && window.Player.isPlaying) && !this.isDraggingPlayhead) {
+      const scrollLeft = this.container.scrollLeft;
+      const clientWidth = this.container.clientWidth;
+      if (left < scrollLeft + 20 || left > scrollLeft + clientWidth - 20) {
+        this.container.scrollLeft = Math.max(0, left - clientWidth * 0.3);
+      }
+      return;
     }
 
     // Acompanhamento suave e contínuo da agulha (sem saltos bruscos)
