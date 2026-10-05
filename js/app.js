@@ -136,8 +136,8 @@ class StudioApp {
       vozEdge: 'select-voz',
     });
     this.voicePicker.setProvedor('genaipro');
-    this.imgProvedor = 'kie';
-    this.btnImgProvedorGoogle = document.getElementById('btn-img-provedor-google');
+    this.imgProvedor = 'openrouter';
+    this.btnImgProvedorOpenrouter = document.getElementById('btn-img-provedor-openrouter');
     this.btnImgProvedorKie = document.getElementById('btn-img-provedor-kie');
     this.btnCancelarNovo = document.getElementById('btn-cancelar-novo');
     this.btnCriarProjeto = document.getElementById('btn-criar-projeto');
@@ -187,8 +187,8 @@ class StudioApp {
 
   bindEvents() {
     // Provedor de imagem de IA (tela Novo Vídeo)
-    if (this.btnImgProvedorGoogle) {
-      this.btnImgProvedorGoogle.addEventListener('click', () => this.setImgProvedor('google'));
+    if (this.btnImgProvedorOpenrouter) {
+      this.btnImgProvedorOpenrouter.addEventListener('click', () => this.setImgProvedor('openrouter'));
     }
     if (this.btnImgProvedorKie) {
       this.btnImgProvedorKie.addEventListener('click', () => this.setImgProvedor('kie'));
@@ -509,7 +509,7 @@ class StudioApp {
 
   setImgProvedor(provedor) {
     this.imgProvedor = provedor;
-    if (this.btnImgProvedorGoogle) this.btnImgProvedorGoogle.classList.toggle('active', provedor === 'google');
+    if (this.btnImgProvedorOpenrouter) this.btnImgProvedorOpenrouter.classList.toggle('active', provedor === 'openrouter');
     if (this.btnImgProvedorKie) this.btnImgProvedorKie.classList.toggle('active', provedor === 'kie');
   }
 

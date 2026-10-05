@@ -35,7 +35,7 @@ class StudioInspector {
     this.animacaoExplica = document.getElementById('animacao-explica');
     this.btnAnimacaoGerar = document.getElementById('btn-animacao-gerar');
     this.btnAnimacaoRemover = document.getElementById('btn-animacao-remover');
-    this.btnImgProvedorGoogle = document.getElementById('btn-img-provedor-google-insp');
+    this.btnImgProvedorOpenrouter = document.getElementById('btn-img-provedor-openrouter-insp');
     this.btnImgProvedorKie = document.getElementById('btn-img-provedor-kie-insp');
 
     // Elementos da Aba Áudio
@@ -176,9 +176,9 @@ class StudioInspector {
       });
     }
 
-    // Provedor de imagem de IA (Google/Nano Banana 2 ou Kie.ai), vale pro projeto inteiro
-    if (this.btnImgProvedorGoogle) {
-      this.btnImgProvedorGoogle.addEventListener('click', () => this.setImgProvedor('google'));
+    // Provedor de imagem de IA (GPT-5.4 Image 2 pelo OpenRouter ou Kie.ai), vale pro projeto inteiro
+    if (this.btnImgProvedorOpenrouter) {
+      this.btnImgProvedorOpenrouter.addEventListener('click', () => this.setImgProvedor('openrouter'));
     }
     if (this.btnImgProvedorKie) {
       this.btnImgProvedorKie.addEventListener('click', () => this.setImgProvedor('kie'));
@@ -299,13 +299,14 @@ class StudioInspector {
     }
     await this.voicePicker.init();
     await this.voicePicker.setValue(projectData.voz);
-    this.updateImgProvedorUI((projectData.imagens || {}).provedor || 'google');
+    this.updateImgProvedorUI((projectData.imagens || {}).provedor || 'openrouter');
     this.populateSfxLibrary();
     this.populateMusicLibrary();
   }
 
   updateImgProvedorUI(provedor) {
-    if (this.btnImgProvedorGoogle) this.btnImgProvedorGoogle.classList.toggle('active', provedor !== 'kie');
+    // projeto antigo no Nano Banana 2 (google) não acende nenhum: o botão saiu, mas a fábrica ainda gera por ele
+    if (this.btnImgProvedorOpenrouter) this.btnImgProvedorOpenrouter.classList.toggle('active', provedor === 'openrouter');
     if (this.btnImgProvedorKie) this.btnImgProvedorKie.classList.toggle('active', provedor === 'kie');
   }
 
@@ -315,7 +316,7 @@ class StudioInspector {
     try {
       await API.setImagensProvedor(this.project.name, provedor);
       this.project.imagens = { ...(this.project.imagens || {}), provedor };
-      window.App.notify(`Provedor de imagem trocado para ${provedor === 'kie' ? 'Kie.ai' : 'Nano Banana 2'}. Vale a partir da próxima imagem gerada.`, 'success');
+      window.App.notify(`Provedor de imagem trocado para ${provedor === 'kie' ? 'Kie.ai' : 'GPT-5.4 Image 2'}. Vale a partir da próxima imagem gerada.`, 'success');
     } catch (err) {
       window.App.notify('Erro ao trocar o provedor de imagem: ' + err.message, 'error');
     }
@@ -413,7 +414,7 @@ class StudioInspector {
     const isIA = tipo === 'ia';
     if (this.promptGroup) this.promptGroup.style.display = isIA ? 'flex' : 'none';
     if (this.buscaGroup) this.buscaGroup.style.display = !isIA ? 'flex' : 'none';
-    // o provedor de imagem de IA (Nano Banana 2 / Kie.ai) só faz sentido quando a cena
+    // o provedor de imagem de IA (GPT-5.4 Image 2 / Kie.ai) só faz sentido quando a cena
     // é do tipo IA — pra Foto/Vídeo Real a busca é sempre no Pixabay/Pexels, nunca IA
     if (this.provedorImagemGroup) this.provedorImagemGroup.style.display = isIA ? 'flex' : 'none';
 

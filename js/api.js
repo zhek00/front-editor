@@ -632,7 +632,7 @@ const API = {
     return await res.json();
   },
 
-  // 17. Troca o provedor de imagem de IA (Google/Nano Banana 2 ou Kie.ai) de um projeto
+  // 17. Troca o provedor de imagem de IA (GPT-5.4 Image 2 pelo OpenRouter ou Kie.ai) de um projeto
   async setImagensProvedor(nome, provedor) {
     const res = await this.req(`/api/projetos/${encodeURIComponent(nome)}/imagens/provedor`, {
       method: 'POST',
