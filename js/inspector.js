@@ -336,6 +336,9 @@ class StudioInspector {
 
     // 1. Aba Cena (Visual)
     this.updateTypeRadioUI(cena.tipo);
+    // a cena virou um clipe de motion feito pela fábrica (foto reprovada pelo Jev em cena abstrata)
+    const seloMotion = document.getElementById('badge-motion-ia');
+    if (seloMotion) seloMotion.style.display = cena.origem_badge === 'Motion IA' ? 'inline-flex' : 'none';
     this.updateAnimacaoUI(cena);
     this.updateRevisaoUI(cena);
     if (this.promptField) this.promptField.value = cena.prompt || '';
