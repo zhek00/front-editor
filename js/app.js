@@ -1071,19 +1071,36 @@ class StudioApp {
       }
     }
 
-    // Modelos de texto: dividem as cenas, escolhem o acervo e conferem as imagens
+    // Modelos de linguagem, por tarefa: escrever o roteiro, escolher as fotos, descrever as imagens, o Jev...
+    // Antes era uma linha por provedor ("OpenRouter — 2.076 chamadas") e não dava para ver em que o dinheiro foi
     if (this.custosModelos) {
       this.custosModelos.innerHTML = '';
+      const tarefas = dados.tarefas_dos_modelos || [];
       const modelos = dados.modelos_de_texto || [];
-      if (!modelos.length) {
-        this.custosModelos.appendChild(this.linhaCusto('Nenhuma chamada de modelo de texto ainda.'));
+      if (!tarefas.length && !modelos.length) {
+        this.custosModelos.appendChild(this.linhaCusto('Nenhuma chamada de modelo de linguagem ainda.'));
       }
-      modelos.forEach(m => {
-        this.custosModelos.appendChild(this.linhaCusto(
-          m.provedor + ' — ' + m.chamadas + ' chamadas, ' +
-          numero(m.tokens_lidos + m.tokens_escritos) + ' tokens',
-          m.gratuito ? 'grátis' : this.dinheiro(m.custo_usd)));
+      const precoCurto = (v) => v >= 0.01 ? this.dinheiro(v)
+        : 'US$ ' + Number(v).toFixed(4).replace('.', ',');
+      tarefas.forEach(t => {
+        const gratis = t.gratis === t.chamadas ? 'todas grátis' : numero(t.gratis) + ' grátis';
+        const linha = this.linhaCusto(
+          t.tarefa + ' — ' + numero(t.chamadas) + ' chamadas, ' + gratis,
+          t.custo_usd > 0 ? precoCurto(t.custo_usd) : 'grátis');
+        const rodape = document.createElement('div');
+        rodape.className = 'custos-item-rodape';
+        rodape.textContent = (t.modelos || []).map(m =>
+          m.modelo + ' ' + numero(m.chamadas) + 'x' + (m.custo_usd > 0 ? ' (' + precoCurto(m.custo_usd) + ')' : ' (grátis)'))
+          .join(' · ');
+        linha.appendChild(rodape);
+        this.custosModelos.appendChild(linha);
       });
+      if (modelos.length) {
+        // o total de cada provedor, numa linha só, para conferir com o saldo do OpenRouter
+        this.custosModelos.appendChild(this.linhaCusto(
+          'Por provedor: ' + modelos.map(m => m.provedor + ' ' +
+            (m.gratuito ? 'grátis' : precoCurto(m.custo_usd)) + ' (' + numero(m.chamadas) + ' chamadas)').join(' · ')));
+      }
     }
 
     const ROTULOS = dados.rotulos || { narracao: 'Narração', efeito: 'Efeitos sonoros', imagem: 'Imagens de IA' };
@@ -1158,21 +1175,31 @@ class StudioApp {
     const fragmento = document.createDocumentFragment();
 
     const cenas = this.currentProjectData.cenas || [];
-    const filtradas = cenas.filter(c => {
-      if (this.currentFilter === 'ia') return c.tipo === 'ia';
-      if (this.currentFilter === 'real') return c.tipo === 'foto_real' || c.tipo === 'video_real';
-      if (this.currentFilter === 'sfx') return !!(c.efeito && c.efeito.descricao);
-      if (this.currentFilter === 'sem_arquivo') return !!c.sem_arquivo;
-      return true;
-    });
+    // o clipe do Motion IA entra como vídeo (tipo video_real), mas não é material real: tem aba própria
+    const ehMotion = (c) => c.origem_badge === 'Motion IA' || (c.midia && c.midia.fonte === 'motion_ia');
+    const FILTROS = {
+      all: () => true,
+      ia: (c) => c.tipo === 'ia' && !ehMotion(c),
+      motion: ehMotion,
+      real: (c) => (c.tipo === 'foto_real' || c.tipo === 'video_real') && !ehMotion(c),
+      sfx: (c) => !!(c.efeito && c.efeito.descricao),
+      sem_arquivo: (c) => !!c.sem_arquivo,
+    };
+    const filtradas = cenas.filter(FILTROS[this.currentFilter] || FILTROS.all);
 
-    // deixa visível quantas cenas estão sem foto, vídeo ou imagem de IA
-    const semArquivo = cenas.filter(c => c.sem_arquivo).length;
-    const pilulaFalta = document.getElementById('filtro-sem-arquivo');
-    if (pilulaFalta) {
-      pilulaFalta.textContent = semArquivo ? `Sem arquivo (${semArquivo})` : 'Sem arquivo';
-      pilulaFalta.classList.toggle('filter-pill-alerta', semArquivo > 0);
-    }
+    // cada aba mostra quantas cenas tem ("IA 50", "Motion IA 39"); a de sem arquivo acende quando falta alguma
+    document.querySelectorAll('.filter-pill[data-filter]').forEach(pilula => {
+      const regra = FILTROS[pilula.dataset.filter];
+      if (!regra) return;
+      if (!pilula.dataset.rotulo) pilula.dataset.rotulo = pilula.textContent.trim();
+      const total = cenas.filter(regra).length;
+      pilula.textContent = pilula.dataset.rotulo;
+      const num = document.createElement('span');
+      num.className = 'filter-pill-num';
+      num.textContent = total.toLocaleString('pt-BR');
+      pilula.appendChild(num);
+      if (pilula.dataset.filter === 'sem_arquivo') pilula.classList.toggle('filter-pill-alerta', total > 0);
+    });
 
     filtradas.forEach(c => {
       const card = document.createElement('div');

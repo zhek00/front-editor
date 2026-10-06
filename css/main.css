@@ -339,6 +339,7 @@ button, input, select, textarea {
 
 .filter-pills {
   display: flex;
+  flex-wrap: wrap;  /* seis abas com o número de cenas não cabem numa linha da barra lateral */
   gap: 6px;
   padding: 7px 12px;
   border-bottom: 1px solid var(--border-subtle);
@@ -366,6 +367,12 @@ button, input, select, textarea {
   background: var(--bg-surface-elevated);
   color: var(--text-primary);
   border-color: var(--border-medium);
+}
+
+.filter-pill-num {
+  margin-left: 4px;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
 }
 
 .filter-pill.filter-pill-alerta {
