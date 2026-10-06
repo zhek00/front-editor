@@ -402,7 +402,10 @@ const API = {
       : `/api/projetos/${encodeURIComponent(nome)}/status`;
     const res = await this.req(caminho);
     if (!res.ok) throw new Error('Falha ao consultar status');
-    return await res.json();
+    const dados = await res.json();
+    // os gratuitos esgotaram e a tarefa espera a pessoa liberar o pago (pago.js)
+    if (window.PagoAviso) window.PagoAviso.mostrar(nome, dados.pago_pendente || null);
+    return dados;
   },
 
   // 8b. Mapa do roteiro: blocos, âncoras, armadilhas de busca, pessoas reais e proibidos
