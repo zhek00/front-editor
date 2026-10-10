@@ -1425,7 +1425,11 @@ class StudioApp {
     const texto = todas
       ? `Excluir as ${quantas} animações deste vídeo? As cenas voltam a mostrar só a imagem.`
       : `Excluir a animação "${(m.texto || '').slice(0, 60)}"? As cenas por baixo voltam a mostrar só a imagem.`;
-    if (!window.confirm(texto)) return;
+    const ok = await Dialogo.confirmar({
+      titulo: todas ? 'Excluir todas as animações' : 'Excluir animação',
+      texto, confirmar: 'Excluir', perigo: true,
+    });
+    if (!ok) return;
     // solta a prévia que está tocando: no Windows a fábrica não mexe num arquivo aberto pelo navegador
     if (window.Player && typeof window.Player.soltarMotion === 'function') window.Player.soltarMotion();
     try {
@@ -1508,18 +1512,17 @@ class StudioApp {
         return;
       }
       const custo = Number(previa.custo_estimado_usd).toFixed(2).replace('.', ',');
-      const texto = `Vou terminar o carregamento:
-
-` +
-        `• ${previa.sem_acervo} cena(s) esperando foto ou vídeo de acervo (grátis)
-` +
-        `• ${previa.sem_imagem_ia} imagem(ns) de IA para gerar
-
-` +
-        `Custo estimado: US$ ${custo}
-
-Continuar?`;
-      if (!window.confirm(texto)) {
+      const ok = await Dialogo.confirmar({
+        titulo: 'Terminar o carregamento',
+        texto: 'As cenas que faltam recebem foto, vídeo ou imagem. O que já está pronto não é pago de novo.',
+        itens: [
+          { rotulo: 'Cenas esperando acervo', valor: previa.sem_acervo, nota: 'grátis' },
+          { rotulo: 'Imagens de IA para gerar', valor: previa.sem_imagem_ia },
+        ],
+        custo: `US$ ${custo}`,
+        confirmar: 'Continuar',
+      });
+      if (!ok) {
         this.btnContinuar.disabled = false;
         return;
       }
@@ -2231,21 +2234,8 @@ Continuar?`;
   }
 
   notify(msg, type = 'info') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
-    toast.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      toast.style.transition = 'all 200ms ease';
-      setTimeout(() => toast.remove(), 250);
-    }, 3500);
+    // o desenho do aviso (ícone, cor do tipo, fechar, barra do tempo) fica em js/dialogo.js
+    if (window.Aviso) window.Aviso.mostrar(String(msg), type);
   }
 }
 

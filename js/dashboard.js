@@ -237,16 +237,25 @@ class StudioDashboard {
   /** Mostra o que falta e quanto pode custar, e só então põe a criação para andar de novo. */
   async retomar(nome, botao) {
     const p = this.projetos.find(x => (x.nome || x.name) === nome) || {};
-    const motivo = (p.criacao && p.criacao.mensagem) ? `Onde parou: ${p.criacao.mensagem}\n\n` : '';
+    // "Parado, precisa de você: OpenRouter: acabou o crédito..." vira o quadro de aviso, sem o prefixo repetido
+    const motivo = ((p.criacao && p.criacao.mensagem) || '').replace(/^\s*Parado[^:]*:\s*/i, '').trim();
     botao.disabled = true;
     try {
       const est = await API.retomarCriacao(nome, false);
-      let texto = `${motivo}A criação de "${nome}" continua de onde parou, sem pagar de novo o que já foi feito.`;
+      const itens = [];
       if (est.sem_imagem_ia || est.sem_acervo) {
-        texto += `\n\nFaltam ${est.sem_acervo || 0} cena(s) de acervo (grátis) e ${est.sem_imagem_ia || 0} imagem(ns) de IA.`;
+        itens.push({ rotulo: 'Cenas de acervo', valor: est.sem_acervo || 0, nota: 'grátis' });
+        itens.push({ rotulo: 'Imagens de IA', valor: est.sem_imagem_ia || 0 });
       }
-      if (est.custo_estimado_usd) texto += `\nCusto estimado: até US$ ${est.custo_estimado_usd.toFixed(2)}.`;
-      if (!window.confirm(texto + '\n\nContinuar?')) return;
+      const ok = await Dialogo.confirmar({
+        titulo: 'Retomar a criação',
+        aviso: motivo ? { tipo: 'parado', titulo: 'Onde parou', texto: motivo } : null,
+        texto: `"${nome}" continua de onde parou, sem pagar de novo o que já foi feito.`,
+        itens,
+        custo: est.custo_estimado_usd ? `até US$ ${est.custo_estimado_usd.toFixed(2).replace('.', ',')}` : null,
+        confirmar: 'Retomar',
+      });
+      if (!ok) return;
       await API.retomarCriacao(nome, true);
       this.app.notify(`Criação de ${nome} retomada. O painel se atualiza sozinho.`, 'success');
       await this.recarregar();
