@@ -207,14 +207,16 @@ class StudioDashboard {
       editar.addEventListener('click', () => this.app.abrirNaTimeline(nome));
       acoes.appendChild(editar);
     } else if (rodando) {
-      // ainda sem todas as cenas preenchidas: nada pra editar de verdade, então o botão fica
-      // só informativo em vez de abrir a timeline pela metade
-      const processando = document.createElement('button');
-      processando.className = 'btn btn-secondary btn-sm';
-      processando.textContent = 'Processando…';
-      processando.disabled = true;
-      processando.title = criacao.mensagem || 'Libera quando todas as cenas tiverem imagem';
-      acoes.appendChild(processando);
+      // ainda em produção: abre a timeline para ver as cenas que já têm imagem (pedido do usuário em
+      // 2026-10-14). O editor mostra "Em produção", se atualiza sozinho e a fábrica recusa salvar e
+      // renderizar até a criação terminar (api._recusar_se_criando)
+      const acompanhar = document.createElement('button');
+      acompanhar.className = 'btn btn-secondary btn-sm';
+      acompanhar.textContent = 'Acompanhar';
+      acompanhar.title = (criacao.mensagem ? criacao.mensagem + ' ' : '') +
+        'Abre o vídeo como está agora; salvar e renderizar liberam quando a criação terminar.';
+      acompanhar.addEventListener('click', () => this.app.abrirNaTimeline(nome));
+      acoes.appendChild(acompanhar);
     } else {
       const retomar = document.createElement('button');
       retomar.className = 'btn btn-primary btn-sm';
@@ -222,6 +224,13 @@ class StudioDashboard {
       retomar.title = criacao.mensagem || 'Continua a criação de onde parou, sem pagar de novo o que já foi feito';
       retomar.addEventListener('click', () => this.retomar(nome, retomar));
       acoes.appendChild(retomar);
+      // parado no meio: dá para ver como o vídeo está antes de decidir retomar
+      const ver = document.createElement('button');
+      ver.className = 'btn btn-secondary btn-sm';
+      ver.textContent = 'Ver';
+      ver.title = 'Abre o vídeo como está agora, com as cenas que já ficaram prontas';
+      ver.addEventListener('click', () => this.app.abrirNaTimeline(nome));
+      acoes.appendChild(ver);
     }
 
     const excluir = document.createElement('button');
