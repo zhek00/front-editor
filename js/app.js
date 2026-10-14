@@ -1175,8 +1175,10 @@ class StudioApp {
     const fragmento = document.createDocumentFragment();
 
     const cenas = this.currentProjectData.cenas || [];
-    // o clipe do Motion IA entra como vídeo (tipo video_real), mas não é material real: tem aba própria
-    const ehMotion = (c) => c.origem_badge === 'Motion IA' || (c.midia && c.midia.fonte === 'motion_ia');
+    // o clipe do Motion IA e a cena animada do animation-ai entram como vídeo (tipo video_real), mas não são
+    // material real: têm aba própria. A do animation-ai ficava de fora da aba e contava como "Real" (2026-10-14)
+    const ehMotion = (c) => c.origem_badge === 'Motion IA' || c.origem_badge === 'Animation IA' ||
+      (c.midia && (c.midia.fonte === 'motion_ia' || c.midia.fonte === 'animation_ai'));
     const FILTROS = {
       all: () => true,
       ia: (c) => c.tipo === 'ia' && !ehMotion(c),
